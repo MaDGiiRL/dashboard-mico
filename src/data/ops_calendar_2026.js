@@ -1,46 +1,54 @@
 // src/data/ops_calendar_2026.js
-import { b1HasAny } from "./b1_calendar_2026.js";
-
-/**
- * Appuntamenti OPS fissi (solo lettura):
- * - 07:30–23:30 collegamento sala safety belluno
- * - 11:30 briefing CFD
- * - 15:00 allineamento reg/prov allerta meteo Milano–Cortina
- * - 17:00 incontro operativo CMR Milano–Cortina
- *
- * Per default li mostriamo solo nei giorni "operativi" secondo B1 (gare/speciali),
- * così non intasano il calendario nei giorni vuoti.
- * Se li vuoi SEMPRE, basta rimuovere il controllo b1HasAny.
- */
-export function opsAppointmentsForDay(dayISO) {
-    if (!b1HasAny(dayISO)) return [];
-
-    const mk = (idx, title, starts, ends, location = "", notes = "") => ({
-        id: `ops-${dayISO}-${idx}`,
-        source: "OPS",
-        readonly: true,
-        title,
-        location,
-        starts_at: `${dayISO}T${starts}:00`,
-        ends_at: ends ? `${dayISO}T${ends}:00` : null,
-        notes,
-    });
-
-    return [
-        mk(1, "Collegamento con Sala Safety Belluno", "07:30", "23:30", "Belluno", "Collegamento continuativo"),
-        mk(2, "Briefing CFD", "11:30", "12:00", "", "Briefing CFD"),
-        mk(
-            3,
-            "Allineamento regionale/provinciale – allerta meteo Milano–Cortina",
-            "15:00",
-            "15:30",
-            "",
-            "Allineamento regionale/provinciale"
-        ),
-        mk(4, "Incontro operativo CMR Milano–Cortina", "17:00", "18:00", "", "CMR Milano–Cortina"),
-    ];
+function iso(day, hhmm) {
+    // ISO locale "YYYY-MM-DDTHH:MM:00"
+    return `${day}T${hhmm}:00`;
 }
 
-export function opsCount(dayISO) {
-    return opsAppointmentsForDay(dayISO).length;
+const OPS = {
+    "2026-02-06": [
+        {
+            id: "ops-2026-02-06-safety-link",
+            external_id: "2026-02-06-safety-link",
+            title: "Collegamento con sala safety Belluno",
+            location: "Belluno",
+            starts_at: iso("2026-02-06", "07:30"),
+            ends_at: iso("2026-02-06", "23:30"),
+        },
+        {
+            id: "ops-2026-02-06-briefing-cfd",
+            external_id: "2026-02-06-briefing-cfd",
+            title: "Briefing CFD",
+            location: "",
+            starts_at: iso("2026-02-06", "11:30"),
+            ends_at: null,
+        },
+        {
+            id: "ops-2026-02-06-allineamento-meteo",
+            external_id: "2026-02-06-allineamento-meteo",
+            title: "Allineamento regionale/provinciale — Allerta meteo Milano–Cortina",
+            location: "Milano – Cortina",
+            starts_at: iso("2026-02-06", "15:00"),
+            ends_at: null,
+        },
+        {
+            id: "ops-2026-02-06-cmr-operativo",
+            external_id: "2026-02-06-cmr-operativo",
+            title: "Incontro operativo CMR Milano–Cortina",
+            location: "Milano – Cortina",
+            starts_at: iso("2026-02-06", "17:00"),
+            ends_at: null,
+        },
+    ],
+};
+
+export function opsAppointmentsForDay(day) {
+    return (OPS[day] || []).map((x) => ({
+        ...x,
+        source: "OPS",
+        readonly: true,
+    }));
+}
+
+export function opsCount(day) {
+    return OPS[day]?.length || 0;
 }

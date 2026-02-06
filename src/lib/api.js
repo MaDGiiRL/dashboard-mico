@@ -1,3 +1,4 @@
+// src/lib/api.js
 const API = import.meta.env.VITE_API_URL;
 
 let token = localStorage.getItem("token");
@@ -33,20 +34,23 @@ export const api = {
 
     dashboardDay: (day) => request(`/days/${day}/dashboard`),
 
-    issueComments: (id) => request(`/issues/${id}/comments`),
-    addIssueComment: (id, message) =>
-        request(`/issues/${id}/comments`, { method: "POST", body: JSON.stringify({ message }) }),
+    // note overlay (OPS + B1 + COC + ANA)
+    upsertAppointmentNote: (payload) =>
+        request("/appointment-notes", { method: "POST", body: JSON.stringify(payload) }),
+    appointmentNotesDay: (day) => request(`/appointment-notes/${day}`),
 
-    logs: (section, day, limit = 50) => {
-        const sp = new URLSearchParams();
-        if (section) sp.set("section", section);
-        if (day) sp.set("day", day);
-        sp.set("limit", String(limit));
-        return request(`/activity-logs?${sp.toString()}`);
-    },
+    // ✅ COC: apri/chiudi/upsert (no duplicati)
+    upsertCocStatus: (payload) =>
+        request("/coc-status/upsert", { method: "POST", body: JSON.stringify(payload) }),
 
-    adminUsers: () => request("/admin/users"),
-    adminCreateUser: (payload) => request("/admin/users", { method: "POST", body: JSON.stringify(payload) }),
-    adminSetRole: (id, role) =>
-        request(`/admin/users/${id}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
+    // ✅ COC: aggiungi/ensure comune (crea coc_communes se manca)
+    ensureCocCommune: (payload) =>
+        request("/coc-communes/ensure", { method: "POST", body: JSON.stringify(payload) }),
+
+    // COC ordinanza
+    upsertCocOrdinance: (payload) =>
+        request("/coc-ordinances/upsert", { method: "POST", body: JSON.stringify(payload) }),
+
+    // ✅ ANA: aggiungi mezzi/materiali (overlay DB)
+    addAnaItem: (payload) => request("/ana-items", { method: "POST", body: JSON.stringify(payload) }),
 };

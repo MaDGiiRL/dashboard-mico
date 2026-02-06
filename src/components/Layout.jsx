@@ -2,6 +2,8 @@ import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import RoleBadge from "./RoleBadge.jsx";
+import Footer from "./Footer.jsx";
+
 
 export default function Layout() {
     const { user, logout } = useAuth();
@@ -65,6 +67,7 @@ export default function Layout() {
                 <main className="mt-4 rounded-2xl bg-neutral-900/40 border border-neutral-800 p-4 sm:p-6">
                     <Outlet />
                 </main>
+                <Footer />
             </div>
         </div>
     );

@@ -2,64 +2,57 @@
 import React from "react";
 import { api, setToken } from "./api.js";
 
-const Ctx = React.createContext(null);
-
-export function useAuth() {
-    const v = React.useContext(Ctx);
-    if (!v) throw new Error("useAuth must be used within AuthProvider");
-    return v;
-}
+const AuthCtx = React.createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
 
-    React.useEffect(() => {
-        (async () => {
-            try {
-                const me = await api.me();
-                setUser(me.user);
-            } catch {
-                setUser(null);
-            } finally {
-                setLoading(false);
-            }
-        })();
+    const refresh = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const me = await api.me();
+            // ✅ /me ritorna { user: {...} }
+            setUser(me.user || null);
+        } catch {
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
+    React.useEffect(() => {
+        refresh();
+    }, [refresh]);
+
     const login = async (email, password) => {
-        setLoading(true);
-        const res = await api.login(email, password);
-        setToken(res.token);
-        const me = await api.me();
-        setUser(me.user);
-        setLoading(false);
+        const out = await api.login(email, password);
+        setToken(out.token);
+
+        // ✅ opzionale: se vuoi evitare una chiamata in più, puoi fare:
+        // setUser(out.user);
+        // setLoading(false);
+        // ma così è più pulito e coerente col token:
+        await refresh();
     };
 
-    const logout = () => {
+    const logout = async () => {
         setToken(null);
         setUser(null);
     };
 
-    // Normalizzazione robusta: "Admin"/"admin"/"EDITOR" -> "admin"/"editor"
-    const role = String(user?.role || "").trim().toLowerCase();
-
+    const role = user?.role || null; // ✅ ora è corretto
     const canWrite = role === "admin" || role === "editor";
-    const isAdmin = role === "admin";
 
     return (
-        <Ctx.Provider
-            value={{
-                user,
-                loading,
-                login,
-                logout,
-                role,     // es: "admin"
-                canWrite, // boolean
-                isAdmin,  // boolean
-            }}
-        >
+        <AuthCtx.Provider value={{ user, role, canWrite, loading, login, logout, refresh }}>
             {children}
-        </Ctx.Provider>
+        </AuthCtx.Provider>
     );
+}
+
+export function useAuth() {
+    const ctx = React.useContext(AuthCtx);
+    if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+    return ctx;
 }

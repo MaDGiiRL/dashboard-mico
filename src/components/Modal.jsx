@@ -18,12 +18,12 @@ export default function Modal({ open, title, onClose, children }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onMouseDown={() => onClose?.()}>
             <div className="absolute inset-0 bg-black/70" />
 
-            {/* max-h + scroll interno */}
             <div
-                className="relative w-full max-w-3xl max-h-[90vh] rounded-3xl border border-neutral-800 bg-neutral-950 shadow-2xl flex flex-col"
+                className="relative w-full max-w-3xl rounded-3xl border border-neutral-800 bg-neutral-950 shadow-2xl flex flex-col"
+                style={{ maxHeight: "calc(100vh - 2rem)" }} // ✅ resta dentro viewport
                 onMouseDown={(e) => e.stopPropagation()}
             >
-                <div className="shrink-0 flex items-center justify-between gap-3 border-b border-neutral-800 px-5 py-4">
+                <div className="flex items-center justify-between gap-3 border-b border-neutral-800 px-5 py-4">
                     <div className="min-w-0">
                         <div className="text-sm text-neutral-400">Dettaglio</div>
                         <div className="text-lg font-semibold truncate">{title}</div>
@@ -39,7 +39,10 @@ export default function Modal({ open, title, onClose, children }) {
                     </button>
                 </div>
 
-                <div className="p-5 overflow-y-auto">{children}</div>
+                {/* ✅ scroll interno */}
+                <div className="p-5 overflow-y-auto" style={{ maxHeight: "calc(100vh - 2rem - 72px)" }}>
+                    {children}
+                </div>
             </div>
         </div>
     );

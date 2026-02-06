@@ -9,7 +9,7 @@ import Coc from "../pages/Coc.jsx";
 import Gare from "../pages/Gare.jsx";
 import Criticita from "../pages/Criticita.jsx";
 import Meteo from "../pages/Meteo.jsx";
-import Rubrica from "../pages/Rubrica.jsx";
+import Reperibilita from "../pages/Reperibilita.jsx";
 import Admin from "../pages/Admin.jsx";
 
 function Protected({ children }) {
@@ -44,7 +44,7 @@ export default function App() {
                 <Route path="gare" element={<Gare />} />
                 <Route path="criticita" element={<Criticita />} />
                 <Route path="meteo" element={<Meteo />} />
-                <Route path="rubrica" element={<Rubrica />} />
+                <Route path="reperibilita" element={<Reperibilita />} />
                 <Route
                     path="admin"
                     element={

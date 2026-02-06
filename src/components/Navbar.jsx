@@ -13,12 +13,9 @@ import {
 
 const links = [
     { to: "/", label: "Dashboard", Icon: LayoutDashboard },
-    { to: "/calendario", label: "Calendario", Icon: CalendarDays },
-    { to: "/coc", label: "COC", Icon: Building2 },
-    // { to: "/gare", label: "Gare + Mappa", Icon: MapPinned },
+    { to: "/reperibilita", label: "Reperibili", Icon: Phone },
     { to: "/criticita", label: "Criticità", Icon: AlertTriangle },
-    { to: "/meteo", label: "Meteo", Icon: CloudSun },
-    { to: "/rubrica", label: "Rubrica", Icon: Phone },
+
 ];
 
 export default function Navbar() {

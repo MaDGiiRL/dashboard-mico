@@ -1,3 +1,4 @@
+// server/routes/dashboard.js
 import { z } from "zod";
 import { q } from "../db.js";
 import { requireRole } from "../auth/middleware.js";
@@ -15,7 +16,11 @@ export async function dashboardRoutes(app) {
     app.get("/days/:day/dashboard", async (req, reply) => {
         try {
             requireRole(["admin", "editor", "viewer"])(req);
-            const params = z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(req.params);
+
+            const params = z
+                .object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })
+                .parse(req.params);
+
             const day = params.day;
 
             await q(`insert into op_days(day) values($1) on conflict (day) do nothing`, [day]);
@@ -25,19 +30,20 @@ export async function dashboardRoutes(app) {
             const races = await q(`select * from races where day=$1 order by starts_at asc`, [day]);
             const appointments = await q(`select * from appointments where day=$1 order by starts_at asc`, [day]);
             const weather = await q(`select * from weather_bulletins where day=$1 order by created_at desc`, [day]);
+
             const issuesOpen = await q(
                 `select * from issues
-         where (day=$1 or day is null) and status in ('aperta','in_lavorazione')
-         order by severity desc, updated_at desc`,
+                 where (day=$1 or day is null) and status in ('aperta','in_lavorazione')
+                 order by severity desc, updated_at desc`,
                 [day]
             );
 
             const coc = await q(
                 `select cs.*, cc.name as commune_name
-         from coc_status cs
-         join coc_communes cc on cc.id = cs.commune_id
-         where cs.day=$1
-         order by cc.name asc`,
+                 from coc_status cs
+                 join coc_communes cc on cc.id = cs.commune_id
+                 where cs.day=$1
+                 order by cc.name asc`,
                 [day]
             );
 
@@ -47,12 +53,13 @@ export async function dashboardRoutes(app) {
             );
 
             const contingents = await q(`select * from contingents where day=$1`, [day]);
+
             const contingentTeams = await q(
                 `select ct.*, c.site
-         from contingent_teams ct
-         join contingents c on c.id = ct.contingent_id
-         where c.day=$1
-         order by ct.team_name asc`,
+                 from contingent_teams ct
+                 join contingents c on c.id = ct.contingent_id
+                 where c.day=$1
+                 order by ct.team_name asc`,
                 [day]
             );
 
@@ -68,10 +75,10 @@ export async function dashboardRoutes(app) {
 
             const vehiclesOut = await q(
                 `select vd.*, v.name as vehicle_name, v.code as vehicle_code
-         from vehicle_deployments vd
-         join vehicles v on v.id = vd.vehicle_id
-         where vd.day=$1 and vd.is_out=true
-         order by v.name asc`,
+                 from vehicle_deployments vd
+                 join vehicles v on v.id = vd.vehicle_id
+                 where vd.day=$1 and vd.is_out=true
+                 order by v.name asc`,
                 [day]
             );
 
@@ -80,10 +87,28 @@ export async function dashboardRoutes(app) {
                 [day]
             );
 
+            // ✅ note (OPS + static overlay)
+            const appointmentNotes = await q(
+                `select day, source, external_id, notes, updated_at
+                 from appointment_notes
+                 where day = $1`,
+                [day]
+            );
+
+            // ✅ ANA overlay (globali + per day se vuoi usarlo)
+            const anaItems = await q(
+                `select id, day, place, section_id, section_title, item_text, created_at
+                 from ana_inventory_items
+                 where (day = $1 or day is null)
+                 order by created_at asc`,
+                [day]
+            );
+
             return {
                 day,
                 races,
                 appointments,
+                appointmentNotes,
                 coc,
                 safetyRoom,
                 contingents,
@@ -93,6 +118,7 @@ export async function dashboardRoutes(app) {
                 weather,
                 issuesOpen,
                 mapFeatures,
+                anaItems, // ✅ torna al frontend
             };
         } catch (e) {
             return reply.status(400).send({ error: e.message || "Bad request" });
