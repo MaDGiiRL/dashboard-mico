@@ -12,47 +12,47 @@ export const reperibilitaData = {
             },
             {
                 "date": "2026-02-05",
-                "shift": "8-20",
+                "shift": "20-8",
                 "people": [
-                    { "name": "Maran", "phone": "3382556806" },
-                    { "name": "Vettorato", "phone": "3476351544" },
-                    { "name": "Viezzer", "phone": "3470791070" }
+                    { "name": "Gomiero", "phone": "3384930413" },
+                    { "name": "Miotto", "phone": "3428197325" },
+                    { "name": "Nuciari", "phone": "3451468500" }
                 ]
             },
             {
                 "date": "2026-02-06",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Fantin", "phone": "3495604543" },
-                    { "name": "Breda", "phone": "3487490870" },
-                    { "name": "Pigozzo", "phone": "3451288526" }
+                    { "name": "Lemessi", "phone": "3404079684" },
+                    { "name": "De Faveri", "phone": "3488914417" },
+                    { "name": "Fontana", "phone": "3450905420" }
                 ]
             },
             {
                 "date": "2026-02-07",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Olivotto", "phone": "3401271225" },
-                    { "name": "Trolio", "phone": "3451071987" },
-                    { "name": "Quattrin", "phone": "3356823939" }
+                    { "name": "Lemessi", "phone": "3404079684" },
+                    { "name": "De Faveri", "phone": "3488914417" },
+                    { "name": "Fontana", "phone": "3450905420" }
                 ]
             },
             {
                 "date": "2026-02-08",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Fava", "phone": "3490871692" },
-                    { "name": "Da Ronch", "phone": "3484949797" },
-                    { "name": "Gumiero", "phone": "3382745346" }
+                    { "name": "Lemessi", "phone": "3404079684" },
+                    { "name": "Ballacchino", "phone": "3458823172" },
+                    { "name": "Fontana", "phone": "3450905420" }
                 ]
             },
             {
                 "date": "2026-02-09",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Viezzer", "phone": "3470791070" },
-                    { "name": "Miotto", "phone": "3428197325" },
-                    { "name": "Pigon", "phone": "3497678596" }
+                    { "name": "j", "phone": "3" },
+                    { "name": "M", "phone": "3" },
+                    { "name": "P", "phone": "3" }
                 ]
             },
             {
@@ -86,27 +86,27 @@ export const reperibilitaData = {
                 "date": "2026-02-13",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Vettorato", "phone": "3476351544" },
-                    { "name": "Zanotto", "phone": "3405805822" },
-                    { "name": "Somenzi", "phone": "3485921753" }
+                    { "name": "Facco", "phone": "3421222320" },
+                    { "name": "Z", "phone": "3405805822" },
+                    { "name": "Parenzan", "phone": "3420630719" }
                 ]
             },
             {
                 "date": "2026-02-14",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Breda", "phone": "3487490870" },
-                    { "name": "Chieregato", "phone": "3471320308" },
-                    { "name": "Salvador", "phone": "3456856968" }
+                    { "name": "Facco", "phone": "3421222320" },
+                    { "name": "C", "phone": "3471320308" },
+                    { "name": "Parenzan", "phone": "3420630719" }
                 ]
             },
             {
                 "date": "2026-02-15",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Pigozzo", "phone": "3451288526" },
-                    { "name": "Maran", "phone": "3382556806" },
-                    { "name": "Fantin", "phone": "3495604543" }
+                    { "name": "Facco", "phone": "3421222320" },
+                    { "name": "M", "phone": "3382556806" },
+                    { "name": "Parenzan", "phone": "3420630719" }
                 ]
             },
             {
@@ -149,27 +149,27 @@ export const reperibilitaData = {
                 "date": "2026-02-20",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Chieregato", "phone": "3471320308" },
-                    { "name": "Salvador", "phone": "3456856968" },
-                    { "name": "Breda", "phone": "3487490870" }
+                    { "name": "Gomiero", "phone": "3707607709" },
+                    { "name": "Miotto", "phone": "3730453230" },
+                    { "name": "Nuciari", "phone": "3753298752" }
                 ]
             },
             {
                 "date": "2026-02-21",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Maran", "phone": "3382556806" },
-                    { "name": "Fantin", "phone": "3495604543" },
-                    { "name": "Pigozzo", "phone": "3451288526" }
+                    { "name": "Gomiero", "phone": "3707607709" },
+                    { "name": "Miotto", "phone": "3730453230" },
+                    { "name": "Nuciari", "phone": "3753298752" }
                 ]
             },
             {
                 "date": "2026-02-22",
                 "shift": "8-20",
                 "people": [
-                    { "name": "Gumiero", "phone": "3382745346" },
-                    { "name": "Da Ronch", "phone": "3484949797" },
-                    { "name": "Fava", "phone": "3490871692" }
+                    { "name": "Gomiero", "phone": "3707607709" },
+                    { "name": "Miotto", "phone": "3730453230" },
+                    { "name": "Nuciari", "phone": "3753298752" }
                 ]
             }
         ],
