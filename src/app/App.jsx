@@ -6,7 +6,7 @@ import Login from "../pages/Login.jsx";
 import Dashboard from "../pages/Dashboard.jsx";
 import Calendar from "../pages/Calendar.jsx";
 import Coc from "../pages/Coc.jsx";
-import Gare from "../pages/Gare.jsx";
+import Mappa from "../pages/Mappa.jsx";
 import Criticita from "../pages/Criticita.jsx";
 import Meteo from "../pages/Meteo.jsx";
 import Reperibilita from "../pages/Reperibilita.jsx";
@@ -41,7 +41,7 @@ export default function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="calendario" element={<Calendar />} />
                 <Route path="coc" element={<Coc />} />
-                <Route path="gare" element={<Gare />} />
+                <Route path="mappa" element={<Mappa />} />
                 <Route path="criticita" element={<Criticita />} />
                 <Route path="meteo" element={<Meteo />} />
                 <Route path="reperibilita" element={<Reperibilita />} />

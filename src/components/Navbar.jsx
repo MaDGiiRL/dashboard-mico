@@ -13,7 +13,10 @@ import {
 
 const links = [
     { to: "/", label: "Dashboard", Icon: LayoutDashboard },
+    // { to: "/calendario", label: "Calendario", Icon: CalendarDays },
+    { to: "/meteo", label: "Meteo", Icon: CloudSun },
     { to: "/reperibilita", label: "Reperibili", Icon: Phone },
+    { to: "/mappa", label: "Mappa", Icon: MapPinned },
     { to: "/criticita", label: "Criticità", Icon: AlertTriangle },
 
 ];

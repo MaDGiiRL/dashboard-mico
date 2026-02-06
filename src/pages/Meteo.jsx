@@ -1,9 +1,58 @@
+// src/pages/Meteo.jsx
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Card from "../components/Card.jsx";
 import LogPanel from "../components/LogPanel.jsx";
 import { api } from "../lib/api.js";
 import { useAuth } from "../lib/auth.jsx";
+import { CloudSun } from "lucide-react";
+
+/* ------------------ helpers ------------------ */
+
+function cx(...xs) {
+    return xs.filter(Boolean).join(" ");
+}
+
+/** Sezione colorata (versione locale, stile Dashboard) */
+function Section({ accent = "neutral", title, icon: Icon, right, children }) {
+    const styles =
+        accent === "meteo"
+            ? {
+                wrap: "border-emerald-500/25 bg-gradient-to-b from-emerald-500/12 via-neutral-950/35 to-neutral-950/20",
+                bar: "bg-gradient-to-b from-emerald-300 to-lime-300",
+                icon: "text-emerald-50",
+                title: "text-emerald-50",
+            }
+            : {
+                wrap: "border-neutral-800 bg-neutral-950/30",
+                bar: "bg-neutral-700",
+                icon: "text-neutral-200",
+                title: "text-neutral-100",
+            };
+
+    return (
+        <div className={cx("rounded-2xl border overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]", styles.wrap)}>
+            <div className="border-b border-neutral-800/70">
+                <div className="px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex items-center gap-3">
+                        <div className={cx("h-10 w-1.5 rounded-full", styles.bar)} />
+                        {Icon ? (
+                            <div className="h-10 w-10 rounded-2xl border border-neutral-800 bg-neutral-950/45 grid place-items-center">
+                                <Icon size={18} className={styles.icon} />
+                            </div>
+                        ) : null}
+                        <div className={cx("text-lg font-semibold truncate", styles.title)}>{title}</div>
+                    </div>
+                    {right ? <div className="shrink-0">{right}</div> : null}
+                </div>
+            </div>
+
+            <div className="px-5 py-5">{children}</div>
+        </div>
+    );
+}
+
+/* ------------------ meteo (Open-Meteo) ------------------ */
 
 const LOCS = [
     { id: "milano", name: "Milano", lat: 45.4643, lon: 9.1895 },
@@ -40,23 +89,15 @@ function wmoToText(code) {
     return map[code] ?? `Codice meteo: ${code}`;
 }
 
-function clamp(n, min, max) {
-    return Math.max(min, Math.min(max, n));
-}
-
 /** Icone semplici inline SVG (niente dipendenze) */
 function WeatherIcon({ code, className = "h-9 w-9" }) {
-    // categorie
     const isClear = code === 0;
     const isCloudy = code === 1 || code === 2 || code === 3;
     const isFog = code === 45 || code === 48;
-    const isRain =
-        [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code);
-    const isSnow =
-        [71, 73, 75, 77, 85, 86].includes(code);
+    const isRain = [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code);
+    const isSnow = [71, 73, 75, 77, 85, 86].includes(code);
     const isThunder = [95, 96, 99].includes(code);
 
-    // stili: usiamo currentColor per ereditare colore
     const base = "text-neutral-100";
 
     if (isClear) {
@@ -92,10 +133,7 @@ function WeatherIcon({ code, className = "h-9 w-9" }) {
                     strokeWidth="2"
                     strokeLinejoin="round"
                 />
-                <path
-                    d="M12 13l-2 4h3l-1 5 4-7h-3l1-2"
-                    fill="currentColor"
-                />
+                <path d="M12 13l-2 4h3l-1 5 4-7h-3l1-2" fill="currentColor" />
             </svg>
         );
     }
@@ -132,7 +170,6 @@ function WeatherIcon({ code, className = "h-9 w-9" }) {
         );
     }
 
-    // cloudy default
     if (isCloudy) {
         return (
             <svg className={`${className} ${base}`} viewBox="0 0 24 24" fill="none">
@@ -146,7 +183,6 @@ function WeatherIcon({ code, className = "h-9 w-9" }) {
         );
     }
 
-    // fallback
     return (
         <div className={`${className} ${base} flex items-center justify-center text-xs`}>
             {code}
@@ -154,7 +190,6 @@ function WeatherIcon({ code, className = "h-9 w-9" }) {
     );
 }
 
-/** trova l’indice dell’ora più vicina a una time ISO */
 function findClosestHourlyIndex(times = [], targetISO) {
     if (!times.length || !targetISO) return -1;
     const t = new Date(targetISO).getTime();
@@ -172,7 +207,6 @@ function findClosestHourlyIndex(times = [], targetISO) {
 }
 
 async function fetchOpenMeteoBundle(lat, lon) {
-    // current + hourly (percepita, pioggia, neve) + daily (min/max oggi)
     const url =
         `https://api.open-meteo.com/v1/forecast` +
         `?latitude=${lat}&longitude=${lon}` +
@@ -211,11 +245,12 @@ function Segmented({ value, onChange, options }) {
 
 function formatMaybe(n, suffix = "") {
     if (n === null || n === undefined || Number.isNaN(Number(n))) return "—";
-    // 1 decimale massimo
     const x = Number(n);
     const s = Math.abs(x) >= 10 ? x.toFixed(0) : x.toFixed(1);
     return `${s}${suffix}`;
 }
+
+/* ------------------ page ------------------ */
 
 export default function Meteo() {
     const { canWrite } = useAuth();
@@ -233,7 +268,6 @@ export default function Meteo() {
     const realtime = useQuery({
         queryKey: ["realtime_weather", "milano_cortina", scope],
         queryFn: async () => {
-            // anche se scope filtra la UI, prelevo solo le location necessarie
             const entries = await Promise.all(
                 visibleLocs.map(async (l) => {
                     const json = await fetchOpenMeteoBundle(l.lat, l.lon);
@@ -246,9 +280,8 @@ export default function Meteo() {
 
                     const apparent = i >= 0 ? h.apparent_temperature?.[i] : null;
                     const precipMM = i >= 0 ? h.precipitation?.[i] : null;
-                    const snowCM = i >= 0 ? h.snowfall?.[i] : null; // Open-Meteo: snowfall in cm
+                    const snowCM = i >= 0 ? h.snowfall?.[i] : null;
 
-                    // “oggi” è indice 0 nel daily (timezone già Europe/Rome)
                     const tMax = d.temperature_2m_max?.[0] ?? null;
                     const tMin = d.temperature_2m_min?.[0] ?? null;
                     const precipDay = d.precipitation_sum?.[0] ?? null;
@@ -258,15 +291,7 @@ export default function Meteo() {
                         l.id,
                         {
                             current,
-                            derived: {
-                                apparent,
-                                precipMM,
-                                snowCM,
-                                tMax,
-                                tMin,
-                                precipDay,
-                                snowDay,
-                            },
+                            derived: { apparent, precipMM, snowCM, tMax, tMin, precipDay, snowDay },
                         },
                     ];
                 })
@@ -294,11 +319,13 @@ export default function Meteo() {
         <div className="space-y-6">
             <div>
                 <div className="text-neutral-400 text-sm">Bollettini</div>
-                <h1 className="text-2xl font-semibold">Meteo</h1>
+                <h1 className="text-2xl font-semibold text-neutral-100">Meteo</h1>
             </div>
 
-            {/* METEO IN TEMPO REALE */}
-            <Card
+            {/* ✅ METEO IN TEMPO REALE (colorato come Dashboard) */}
+            <Section
+                accent="meteo"
+                icon={CloudSun}
                 title="Meteo in tempo reale (Milano + Cortina)"
                 right={
                     <Segmented
@@ -326,21 +353,19 @@ export default function Meteo() {
                         const d = pack?.derived;
 
                         return (
-                            <div key={l.id} className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-3">
+                            <div key={l.id} className="rounded-2xl border border-neutral-800/70 bg-neutral-950/40 p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <div className="font-medium">{l.name}</div>
-                                        {w?.time ? (
-                                            <div className="text-neutral-400 text-xs mt-0.5">Aggiornato: {w.time}</div>
-                                        ) : (
-                                            <div className="text-neutral-400 text-xs mt-0.5">Aggiornato: —</div>
-                                        )}
+                                        <div className="font-semibold text-neutral-100">{l.name}</div>
+                                        <div className="text-neutral-400 text-xs mt-0.5">Aggiornato: {w?.time || "—"}</div>
                                     </div>
-                                    <WeatherIcon code={w?.weathercode} />
+                                    <div className="h-10 w-10 rounded-2xl border border-neutral-800 bg-neutral-950/50 grid place-items-center">
+                                        <WeatherIcon code={w?.weathercode} className="h-8 w-8" />
+                                    </div>
                                 </div>
 
                                 {!w ? (
-                                    <div className="mt-2 text-neutral-400">Nessun dato.</div>
+                                    <div className="mt-3 text-neutral-400">Nessun dato.</div>
                                 ) : (
                                     <div className="mt-3 grid grid-cols-2 gap-2">
                                         <div className="col-span-2 text-neutral-300">
@@ -350,31 +375,23 @@ export default function Meteo() {
 
                                         <div className="rounded-xl border border-neutral-800 bg-neutral-950/30 p-2">
                                             <div className="text-neutral-400 text-xs">Temp</div>
-                                            <div className="text-neutral-100 font-semibold text-lg">
-                                                {formatMaybe(w.temperature, "°C")}
-                                            </div>
+                                            <div className="text-neutral-100 font-semibold text-lg">{formatMaybe(w.temperature, "°C")}</div>
                                         </div>
 
                                         <div className="rounded-xl border border-neutral-800 bg-neutral-950/30 p-2">
                                             <div className="text-neutral-400 text-xs">Percepita</div>
-                                            <div className="text-neutral-100 font-semibold text-lg">
-                                                {formatMaybe(d?.apparent, "°C")}
-                                            </div>
+                                            <div className="text-neutral-100 font-semibold text-lg">{formatMaybe(d?.apparent, "°C")}</div>
                                         </div>
 
                                         <div className="rounded-xl border border-neutral-800 bg-neutral-950/30 p-2">
                                             <div className="text-neutral-400 text-xs">Precip (ora)</div>
-                                            <div className="text-neutral-100 font-medium">
-                                                {formatMaybe(d?.precipMM, " mm")}
-                                            </div>
+                                            <div className="text-neutral-100 font-medium">{formatMaybe(d?.precipMM, " mm")}</div>
                                             <div className="text-neutral-500 text-xs">~ora corrente</div>
                                         </div>
 
                                         <div className="rounded-xl border border-neutral-800 bg-neutral-950/30 p-2">
                                             <div className="text-neutral-400 text-xs">Neve (ora)</div>
-                                            <div className="text-neutral-100 font-medium">
-                                                {formatMaybe(d?.snowCM, " cm")}
-                                            </div>
+                                            <div className="text-neutral-100 font-medium">{formatMaybe(d?.snowCM, " cm")}</div>
                                             <div className="text-neutral-500 text-xs">~ora corrente</div>
                                         </div>
 
@@ -402,63 +419,13 @@ export default function Meteo() {
                         );
                     })}
                 </div>
-            </Card>
+            </Section>
 
-            {/* {canWrite && (
-                <Card title="Nuovo bollettino">
-                    <form
-                        className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            const fd = new FormData(e.currentTarget);
-                            create.mutate({
-                                day: String(fd.get("day")),
-                                source: String(fd.get("source") || ""),
-                                content: String(fd.get("content") || ""),
-                            });
-                            e.currentTarget.reset();
-                        }}
-                    >
-                        <input
-                            name="day"
-                            type="date"
-                            className="rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-2"
-                            required
-                        />
-                        <input
-                            name="source"
-                            placeholder="Fonte"
-                            className="rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-2 sm:col-span-2"
-                        />
-                        <textarea
-                            name="content"
-                            placeholder="Testo bollettino"
-                            className="rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-2 sm:col-span-3"
-                            rows={4}
-                            required
-                        />
-                        <button className="rounded-xl bg-neutral-100 text-neutral-950 px-4 py-2 sm:col-span-3">
-                            Salva
-                        </button>
-                    </form>
-                </Card>
-            )}
+            {/* Se vuoi tenere altre Card neutrali sotto, puoi farlo */}
+            {/* Esempio: storici / log / bollettini */}
 
-            <Card title="Storico">
-                <div className="space-y-2 text-sm">
-                    {(q.data?.rows || []).map((b) => (
-                        <div key={b.id} className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-3">
-                            <div className="text-neutral-400">
-                                {b.day} • {b.source || "Fonte"}
-                            </div>
-                            <div className="mt-1 whitespace-pre-wrap">{b.content}</div>
-                        </div>
-                    ))}
-                    {(q.data?.rows || []).length === 0 && <div className="text-neutral-400">Nessun bollettino.</div>}
-                </div>
-            </Card> */}
-
-         
+            {/* LogPanel resta importato se lo userai, altrimenti rimuovi import */}
+            {/* <LogPanel /> */}
         </div>
     );
 }
