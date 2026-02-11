@@ -1,3 +1,4 @@
+// server/auth/password.js
 import bcrypt from "bcryptjs";
 
 export async function hashPassword(password) {
@@ -6,5 +7,6 @@ export async function hashPassword(password) {
 }
 
 export async function verifyPassword(password, hash) {
+    if (!hash) throw new Error("Password hash mancante (DB: password_hash null/undefined)");
     return bcrypt.compare(password, hash);
 }

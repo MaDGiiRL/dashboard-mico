@@ -108,7 +108,7 @@ export function safetyBellunoContactsAll() {
             operator: "Regione",
             interno: "212",
             external_dial: "0437 31 32 0 poi 7",
-            responder_group: "Regione Veneto",
+            responder_group: "Regione del Veneto",
             responder_digit: "7",
             responder_note: "Quando inizia a parlare il risponditore premere 7",
         },
