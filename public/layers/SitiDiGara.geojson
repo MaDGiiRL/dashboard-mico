@@ -1,0 +1,54 @@
+{
+    "type": "FeatureCollection",
+    "name": "Siti di gara",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 1,
+                "Sito gara": "Cortina Curling Olympic Stadium"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.133144491953949,
+                    46.544247774450874
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 2,
+                "Sito gara": "Cortina Sliding Centre"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.127179292498061,
+                    46.545828542114833
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 3,
+                "Sito gara": "Tofane Alpine Skiing Centre"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.12172265871043,
+                    46.535425637095258
+                ]
+            }
+        }
+    ]
+}

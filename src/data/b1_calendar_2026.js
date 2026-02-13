@@ -1373,35 +1373,64 @@ export const B1_CALENDAR_2026 = {
     },
 };
 
-export function b1Day(dayISO) {
-    return B1_CALENDAR_2026[dayISO] || { races: [], specials: [] };
+// --- tiny hash (FNV-1a 32-bit) deterministic ---
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  // unsigned
+  return (h >>> 0).toString(16).padStart(8, "0");
 }
 
+function stableKeyRace(dayISO, r) {
+  const s = `${dayISO}|race|${r.sport || ""}|${r.name || ""}|${r.starts_at || ""}|${r.ends_at || ""}|${r.venue || ""}`;
+  return `b1-r-${fnv1a(s)}`;
+}
+function stableKeySpecial(dayISO, s) {
+  const x = `${dayISO}|special|${s.type || "special"}|${s.title || ""}|${s.starts_at || ""}|${s.ends_at || ""}`;
+  return `b1-s-${fnv1a(x)}`;
+}
+
+export function b1Day(dayISO) {
+  return B1_CALENDAR_2026[dayISO] || { races: [], specials: [] };
+}
+
+// ✅ Races con id + external_id stabili (per note)
 export function b1RacesForDay(dayISO) {
-    const day = b1Day(dayISO);
-    return (day.races || []).map((r, idx) => ({
-        ...r,
-        id: `b1-${dayISO}-${idx}`,
-        source: "B1",
-        readonly: true,
-    }));
+  const day = b1Day(dayISO);
+  return (day.races || []).map((r) => {
+    const id = r.id || stableKeyRace(dayISO, r);
+    return {
+      ...r,
+      id,
+      source: "B1",
+      external_id: id, // ✅ perfetto per appointment_notes
+      readonly: true,
+    };
+  });
 }
 
 export function b1SpecialsForDay(dayISO) {
-    const day = b1Day(dayISO);
-    return (day.specials || []).map((s, idx) => ({
-        ...s,
-        id: `b1s-${dayISO}-${idx}`,
-        source: "B1",
-        readonly: true,
-    }));
+  const day = b1Day(dayISO);
+  return (day.specials || []).map((s) => {
+    const id = s.id || stableKeySpecial(dayISO, s);
+    return {
+      ...s,
+      id,
+      source: "B1",
+      external_id: id,
+      readonly: true,
+    };
+  });
 }
 
 export function b1RaceCount(dayISO) {
-    return b1Day(dayISO).races?.length || 0;
+  return b1Day(dayISO).races?.length || 0;
 }
 
 export function b1HasAny(dayISO) {
-    const d = b1Day(dayISO);
-    return (d.races?.length || 0) + (d.specials?.length || 0) > 0;
+  const d = b1Day(dayISO);
+  return (d.races?.length || 0) + (d.specials?.length || 0) > 0;
 }

@@ -1,46 +1,49 @@
-// routes/admin.js
 import { z } from "zod";
-import { q } from "../db.js";
+import { q, qAsUser } from "../db.js";
 import { hashPassword } from "../auth/password.js";
 import { requireRole } from "../auth/middleware.js";
 import { logActivity } from "../audit/audit.js";
 
-const ID_PARAM = z.object({ id: z.coerce.number().int().positive() }); // ✅ NON uuid
+const ID_PARAM = z.object({ id: z.coerce.number().int().positive() });
 
 export async function adminRoutes(app) {
     // ===== USERS =====
 
     app.get("/admin/users", async (req, reply) => {
-        try {
-            requireRole(["admin"])(req);
-            const users = await q(
-                "select id, email, display_name, role, is_active, created_at from users order by created_at desc"
-            );
-            return { users };
-        } catch (e) {
-            return reply.status(403).send({ error: e.message || "Forbidden" });
-        }
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
+
+        const users = await q(
+            "select id, email, display_name, role, is_active, created_at from users order by created_at desc"
+        );
+        return { users };
     });
 
     app.post("/admin/users", async (req, reply) => {
-        try {
-            requireRole(["admin"])(req);
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
 
-            const body = z.object({
-                email: z.string().email(),
-                password: z.string().min(8),
-                display_name: z.string().min(2),
-                role: z.enum(["admin", "editor", "viewer"]).default("viewer"),
-            }).parse(req.body);
+        try {
+            const body = z
+                .object({
+                    email: z.string().email(),
+                    password: z.string().min(8),
+                    display_name: z.string().min(2),
+                    role: z.enum(["admin", "editor", "viewer"]).default("viewer"),
+                })
+                .parse(req.body);
 
             const password_hash = await hashPassword(body.password);
 
-            const created = (await q(
-                `insert into users (email, password_hash, display_name, role)
-         values ($1,$2,$3,$4)
-         returning id, email, display_name, role, is_active, created_at`,
-                [body.email.trim().toLowerCase(), password_hash, body.display_name.trim(), body.role]
-            ))[0];
+            const created = (
+                await qAsUser(
+                    req.user,
+                    `insert into users (email, password_hash, display_name, role)
+           values ($1,$2,$3,$4)
+           returning id, email, display_name, role, is_active, created_at`,
+                    [body.email.trim().toLowerCase(), password_hash, body.display_name.trim(), body.role]
+                )
+            )[0];
 
             await logActivity({
                 actor: req.user,
@@ -59,27 +62,67 @@ export async function adminRoutes(app) {
     });
 
     app.patch("/admin/users/:id/role", async (req, reply) => {
-        try {
-            requireRole(["admin"])(req);
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
 
+        try {
             const params = ID_PARAM.parse(req.params);
             const body = z.object({ role: z.enum(["admin", "editor", "viewer"]) }).parse(req.body);
 
             const before = (await q("select id, email, display_name, role from users where id=$1", [params.id]))[0];
             if (!before) return reply.status(404).send({ error: "Not found" });
 
-            const after = (await q(
-                "update users set role=$1, updated_at=now() where id=$2 returning id, email, display_name, role",
-                [body.role, params.id]
-            ))[0];
+            const after = (
+                await qAsUser(
+                    req.user,
+                    "update users set role=$1, updated_at=now() where id=$2 returning id, email, display_name, role",
+                    [body.role, params.id]
+                )
+            )[0];
 
             await logActivity({
                 actor: req.user,
                 section: "admin",
                 entityType: "user",
                 entityId: params.id,
-                action: "update",
+                action: "update_role",
                 summary: `Ruolo ${after.email}: ${before.role} → ${after.role}`,
+                before,
+                after,
+            });
+
+            return { user: after };
+        } catch (e) {
+            return reply.status(400).send({ error: e.message || "Bad request" });
+        }
+    });
+
+    app.patch("/admin/users/:id/active", async (req, reply) => {
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
+
+        try {
+            const params = ID_PARAM.parse(req.params);
+            const body = z.object({ is_active: z.coerce.boolean() }).parse(req.body);
+
+            const before = (await q("select id, email, is_active from users where id=$1", [params.id]))[0];
+            if (!before) return reply.status(404).send({ error: "Not found" });
+
+            const after = (
+                await qAsUser(
+                    req.user,
+                    "update users set is_active=$1, updated_at=now() where id=$2 returning id, email, is_active",
+                    [body.is_active, params.id]
+                )
+            )[0];
+
+            await logActivity({
+                actor: req.user,
+                section: "admin",
+                entityType: "user",
+                entityId: params.id,
+                action: "set_active",
+                summary: `Utente ${after.email} is_active: ${before.is_active} → ${after.is_active}`,
                 before,
                 after,
             });
@@ -92,74 +135,71 @@ export async function adminRoutes(app) {
 
     // ===== ACCESS REQUESTS =====
 
-    // GET /admin/access-requests
     app.get("/admin/access-requests", async (req, reply) => {
-        try {
-            requireRole(["admin"])(req);
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
 
-            // opzionale: ?status=pending|approved|rejected|revoked|all
-            const status = String(req.query?.status || "all");
-            const allowed = new Set(["pending", "approved", "rejected", "revoked", "all"]);
-            const s = allowed.has(status) ? status : "all";
+        const status = String(req.query?.status || "all");
+        const allowed = new Set(["pending", "approved", "rejected", "revoked", "all"]);
+        const s = allowed.has(status) ? status : "all";
 
-            const rows =
-                s === "all"
-                    ? await q(
-                        `select id, display_name, email, organization, reason, status, created_at, decided_at, decided_by, decision_note
-               from access_requests
-               order by created_at desc`
-                    )
-                    : await q(
-                        `select id, display_name, email, organization, reason, status, created_at, decided_at, decided_by, decision_note
-               from access_requests
-               where status=$1
-               order by created_at desc`,
-                        [s]
-                    );
+        // ✅ compatibile col tuo schema attuale: niente decision_note/decided_at/decided_by
+        const baseSql = `
+      select id, display_name, email, organization, reason, status, created_at
+      from access_requests
+    `;
 
-            return { rows };
-        } catch (e) {
-            return reply.status(403).send({ error: e.message || "Forbidden" });
-        }
+        const rows =
+            s === "all"
+                ? await q(`${baseSql} order by created_at desc`)
+                : await q(`${baseSql} where status=$1 order by created_at desc`, [s]);
+
+        return { rows };
     });
 
-    // POST /admin/access-requests/:id/approve  body: { role }
     app.post("/admin/access-requests/:id/approve", async (req, reply) => {
-        try {
-            requireRole(["admin"])(req);
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
 
+        try {
             const params = ID_PARAM.parse(req.params);
-            const body = z.object({
-                role: z.enum(["viewer", "editor", "admin"]).default("viewer"),
-                note: z.string().optional().nullable(),
-            }).parse(req.body || {});
+            const body = z
+                .object({
+                    role: z.enum(["viewer", "editor", "admin"]).default("viewer"),
+                    note: z.string().optional().nullable(), // tenuto per compat FE, ma non lo salviamo se colonna non esiste
+                })
+                .parse(req.body || {});
 
             const ar = (await q("select * from access_requests where id=$1", [params.id]))[0];
             if (!ar) return reply.status(404).send({ error: "Not found" });
             if (ar.status !== "pending") return reply.status(409).send({ error: "Richiesta già processata" });
 
-            // se esiste già utente con quella email, approvare non ha senso
             const existing = (await q("select id from users where lower(email)=lower($1) limit 1", [ar.email]))[0];
             if (existing) return reply.status(409).send({ error: "Esiste già un utente con questa email" });
 
-            // password temporanea (admin la comunica fuori dal sistema)
             const tempPassword = `Temp${Math.random().toString(36).slice(2, 8)}!`;
             const password_hash = await hashPassword(tempPassword);
 
-            const createdUser = (await q(
-                `insert into users (email, password_hash, display_name, role, is_active)
-         values ($1,$2,$3,$4,true)
-         returning id, email, display_name, role, is_active, created_at`,
-                [String(ar.email).toLowerCase(), password_hash, ar.display_name, body.role]
-            ))[0];
+            const createdUser = (
+                await qAsUser(
+                    req.user,
+                    `insert into users (email, password_hash, display_name, role, is_active)
+           values ($1,$2,$3,$4,true)
+           returning id, email, display_name, role, is_active, created_at`,
+                    [String(ar.email).toLowerCase(), password_hash, ar.display_name, body.role]
+                )
+            )[0];
 
-            const updatedReq = (await q(
-                `update access_requests
-         set status='approved', decided_by=$2, decided_at=now(), decision_note=$3
-         where id=$1
-         returning id, display_name, email, organization, reason, status, created_at, decided_at, decided_by, decision_note`,
-                [params.id, req.user?.id ?? null, body.note || null]
-            ))[0];
+            const updatedReq = (
+                await qAsUser(
+                    req.user,
+                    `update access_requests
+           set status='approved'
+           where id=$1
+           returning id, display_name, email, organization, reason, status, created_at`,
+                    [params.id]
+                )
+            )[0];
 
             await logActivity({
                 actor: req.user,
@@ -171,32 +211,33 @@ export async function adminRoutes(app) {
                 after: { request: updatedReq, user: createdUser },
             });
 
-            // IMPORTANTE: se non vuoi MAI rimandare la temp password al frontend, rimuovi questa proprietà.
             return { ok: true, request: updatedReq, user: createdUser, temp_password: tempPassword };
         } catch (e) {
             return reply.status(400).send({ error: e.message || "Bad request" });
         }
     });
 
-    // POST /admin/access-requests/:id/reject body: { note }
     app.post("/admin/access-requests/:id/reject", async (req, reply) => {
-        try {
-            requireRole(["admin"])(req);
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
 
+        try {
             const params = ID_PARAM.parse(req.params);
-            const body = z.object({ note: z.string().optional().nullable() }).parse(req.body || {});
 
             const ar = (await q("select * from access_requests where id=$1", [params.id]))[0];
             if (!ar) return reply.status(404).send({ error: "Not found" });
             if (ar.status !== "pending") return reply.status(409).send({ error: "Richiesta già processata" });
 
-            const updated = (await q(
-                `update access_requests
-         set status='rejected', decided_by=$2, decided_at=now(), decision_note=$3
-         where id=$1
-         returning id, display_name, email, organization, reason, status, created_at, decided_at, decided_by, decision_note`,
-                [params.id, req.user?.id ?? null, body.note || null]
-            ))[0];
+            const updated = (
+                await qAsUser(
+                    req.user,
+                    `update access_requests
+           set status='rejected'
+           where id=$1
+           returning id, display_name, email, organization, reason, status, created_at`,
+                    [params.id]
+                )
+            )[0];
 
             await logActivity({
                 actor: req.user,
@@ -214,26 +255,27 @@ export async function adminRoutes(app) {
         }
     });
 
-    // POST /admin/access-requests/:id/revoke body: { note }
-    // (Revoca SOLO se approved: porta stato a revoked. Non cancella l'utente: per quello gestisci user.is_active altrove.)
     app.post("/admin/access-requests/:id/revoke", async (req, reply) => {
-        try {
-            requireRole(["admin"])(req);
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
 
+        try {
             const params = ID_PARAM.parse(req.params);
-            const body = z.object({ note: z.string().optional().nullable() }).parse(req.body || {});
 
             const ar = (await q("select * from access_requests where id=$1", [params.id]))[0];
             if (!ar) return reply.status(404).send({ error: "Not found" });
             if (ar.status !== "approved") return reply.status(409).send({ error: "Puoi revocare solo richieste approved" });
 
-            const updated = (await q(
-                `update access_requests
-         set status='revoked', decided_by=$2, decided_at=now(), decision_note=$3
-         where id=$1
-         returning id, display_name, email, organization, reason, status, created_at, decided_at, decided_by, decision_note`,
-                [params.id, req.user?.id ?? null, body.note || null]
-            ))[0];
+            const updated = (
+                await qAsUser(
+                    req.user,
+                    `update access_requests
+           set status='revoked'
+           where id=$1
+           returning id, display_name, email, organization, reason, status, created_at`,
+                    [params.id]
+                )
+            )[0];
 
             await logActivity({
                 actor: req.user,
@@ -249,5 +291,57 @@ export async function adminRoutes(app) {
         } catch (e) {
             return reply.status(400).send({ error: e.message || "Bad request" });
         }
+    });
+
+    // ===== LOGS =====
+
+    // GET /admin/activity-logs?limit=200
+    app.get("/admin/activity-logs", async (req, reply) => {
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
+
+        const limit = Math.min(Number(req.query?.limit || 200), 500);
+
+        const rows = await q(
+            `
+    select
+      id,
+      occurred_at,
+      actor_user_id,
+      actor_name,
+      actor_role,
+      section,
+      entity_type,
+      entity_id,
+      action,
+      summary,
+      before,
+      after
+    from activity_logs
+    order by occurred_at desc
+    limit $1
+    `,
+            [limit]
+        );
+
+        return { rows };
+    });
+
+
+    app.get("/admin/db-audit", async (req, reply) => {
+        await requireRole(["admin"])(req, reply);
+        if (reply.sent) return;
+
+        const limit = Math.min(Number(req.query?.limit || 200), 500);
+
+        const rows = await q(
+            `select id, changed_at, table_name, op, actor_user_id, actor_email, actor_role
+       from audit_changes
+       order by changed_at desc
+       limit $1`,
+            [limit]
+        );
+
+        return { rows };
     });
 }

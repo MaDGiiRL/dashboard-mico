@@ -7,148 +7,137 @@ function cx(...xs) {
     return xs.filter(Boolean).join(" ");
 }
 
+/* stesso “linguaggio” premium delle altre pagine (no dark mode) */
+const UI = {
+    shell: "min-h-screen flex items-center justify-center p-4 text-neutral-900 relative overflow-hidden",
+    bg1: "absolute inset-0 -z-10 bg-gradient-to-b from-white/75 via-white/60 to-white/90",
+    bg2:
+        "absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_20%_0%,rgba(99,102,241,0.22),transparent_60%),radial-gradient(50%_50%_at_90%_10%,rgba(236,72,153,0.16),transparent_55%),radial-gradient(50%_50%_at_10%_90%,rgba(34,197,94,0.14),transparent_55%)]",
+    blur: "absolute inset-0 -z-10 backdrop-blur-[2px]",
+
+    card:
+        "w-full max-w-lg rounded-3xl overflow-hidden bg-white/55 backdrop-blur-md " +
+        "shadow-[0_18px_50px_rgba(0,0,0,0.10)] ring-1 ring-white/45",
+    accent: "h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500",
+
+    label: "text-sm text-neutral-600",
+    title: "text-2xl font-extrabold text-neutral-900",
+    help: "text-sm text-neutral-700",
+    tiny: "text-xs text-neutral-600",
+
+    input:
+        "w-full rounded-2xl px-4 py-3 text-sm outline-none " +
+        "bg-white/75 text-neutral-900 placeholder:text-neutral-400 " +
+        "shadow-sm ring-1 ring-white/45 " +
+        "focus:ring-4 focus:ring-indigo-500/15",
+
+    btn:
+        "w-full rounded-2xl px-4 py-3 text-sm font-semibold transition " +
+        "bg-neutral-900 text-white hover:bg-neutral-800 " +
+        "disabled:opacity-60 disabled:cursor-not-allowed",
+
+    linkBtn:
+        "rounded-2xl px-3 py-2 text-sm font-semibold transition " +
+        "bg-white/55 hover:bg-white/70 text-neutral-900 " +
+        "ring-1 ring-white/45 shadow-sm",
+};
+
+function Alert({ tone = "ok", children }) {
+    const tones = {
+        ok: "bg-emerald-500/10 text-emerald-900 ring-1 ring-emerald-500/15",
+        err: "bg-rose-500/10 text-rose-900 ring-1 ring-rose-500/15",
+    };
+    return <div className={cx("rounded-2xl px-4 py-3 text-sm", tones[tone] || tones.ok)}>{children}</div>;
+}
+
 export default function RequestAccess() {
     const [ok, setOk] = useState(false);
     const [err, setErr] = useState(null);
     const [pending, setPending] = useState(false);
 
     return (
-        <div className="min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-lg rounded-3xl border bg-white/70 border-neutral-200 shadow-sm dark:bg-neutral-900/40 dark:border-neutral-800 dark:shadow-none backdrop-blur p-6 sm:p-7 space-y-5">
-                <div className="flex items-center justify-between gap-3">
-                    <div>
-                        <div className="text-sm text-neutral-600 dark:text-neutral-400">Richiesta abilitazione</div>
-                        <h1 className="text-2xl font-semibold">Accesso alla dashboard</h1>
+        <div className={UI.shell}>
+            {/* stesso background “premium” del layout */}
+            <div className={UI.bg1} />
+            <div className={UI.bg2} />
+            <div className={UI.blur} />
+
+            <div className={UI.card}>
+                <div className={UI.accent} />
+
+                <div className="p-6 sm:p-7 space-y-5">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className={UI.label}>Richiesta abilitazione</div>
+                            <h1 className={UI.title}>Accesso alla dashboard</h1>
+                        </div>
+
+                        <Link to="/login" className={UI.linkBtn}>
+                            Torna al login
+                        </Link>
                     </div>
 
-                    <Link
-                        to="/login"
-                        className="rounded-2xl border px-3 py-2 text-sm
-              bg-white border-neutral-200 hover:bg-neutral-100
-              dark:bg-neutral-800 dark:border-neutral-700 dark:hover:bg-neutral-700"
+                    <div className={UI.help}>
+                        La creazione utenti non è pubblica: <span className="font-semibold">solo la developer</span> può registrare nuovi
+                        utenti. Compila il form per richiedere l’abilitazione.
+                    </div>
+
+                    {ok ? <Alert tone="ok">Richiesta inviata. Verrai contattato dall’amministrazione.</Alert> : null}
+                    {err ? <Alert tone="err">{err}</Alert> : null}
+
+                    <form
+                        className="space-y-3"
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            setErr(null);
+                            setOk(false);
+                            setPending(true);
+
+                            const fd = new FormData(e.currentTarget);
+                            const payload = {
+                                name: String(fd.get("name") || "").trim(),
+                                email: String(fd.get("email") || "").trim(),
+                                ente: String(fd.get("ente") || "").trim(),
+                                note: String(fd.get("note") || "").trim(),
+                            };
+
+                            if (!payload.name || !payload.email) {
+                                setErr("Nome ed email sono obbligatori.");
+                                setPending(false);
+                                return;
+                            }
+
+                            try {
+                                await api.requestAccess(payload);
+                                setOk(true);
+                                e.currentTarget.reset();
+                            } catch (e2) {
+                                setErr(e2?.message || "Errore invio richiesta");
+                            } finally {
+                                setPending(false);
+                            }
+                        }}
                     >
-                        Torna al login
-                    </Link>
+                        <input name="name" placeholder="Nome e cognome *" required className={UI.input} />
+                        <input name="email" type="email" placeholder="Email istituzionale *" required className={UI.input} />
+                        <input name="ente" placeholder="Ente / Struttura (opzionale)" className={UI.input} />
+
+                        <textarea
+                            name="note"
+                            rows={4}
+                            placeholder="Motivazione / ruolo / note (opzionale)"
+                            className={cx(UI.input, "resize-none")}
+                        />
+
+                        <button disabled={pending} className={UI.btn}>
+                            {pending ? "Invio..." : "Invia richiesta"}
+                        </button>
+
+                        <div className={UI.tiny}>
+                            Le richieste saranno valutate dall’amministrazione. Se hai già una richiesta pendente, non inviare duplicati.
+                        </div>
+                    </form>
                 </div>
-
-                <div className="text-sm text-neutral-700 dark:text-neutral-300">
-                    La creazione utenti non è pubblica: <span className="font-semibold">solo la developer</span> può registrare nuovi utenti.
-                    Compila il form per richiedere l’abilitazione.
-                </div>
-
-                {ok && (
-                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100">
-                        Richiesta inviata. Verrai contattato dall’amministrazione.
-                    </div>
-                )}
-
-                {err && (
-                    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-900 dark:text-rose-100">
-                        {err}
-                    </div>
-                )}
-
-                <form
-                    className="space-y-3"
-                    onSubmit={async (e) => {
-                        e.preventDefault();
-                        setErr(null);
-                        setOk(false);
-                        setPending(true);
-
-                        const fd = new FormData(e.currentTarget);
-                        const payload = {
-                            name: String(fd.get("name") || "").trim(),
-                            email: String(fd.get("email") || "").trim(),
-                            ente: String(fd.get("ente") || "").trim(),
-                            note: String(fd.get("note") || "").trim(),
-                        };
-
-                        if (!payload.name || !payload.email) {
-                            setErr("Nome ed email sono obbligatori.");
-                            setPending(false);
-                            return;
-                        }
-
-                        try {
-                            await api.requestAccess(payload);
-                            setOk(true);
-                            e.currentTarget.reset();
-                        } catch (e2) {
-                            setErr(e2?.message || "Errore invio richiesta");
-                        } finally {
-                            setPending(false);
-                        }
-                    }}
-                >
-                    <input
-                        name="name"
-                        placeholder="Nome e cognome *"
-                        required
-                        className={cx(
-                            "w-full rounded-2xl border px-4 py-3 text-sm outline-none",
-                            "bg-white border-neutral-200 text-neutral-900 placeholder:text-neutral-400",
-                            "focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-300",
-                            "dark:bg-neutral-950/40 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500",
-                            "dark:focus:ring-indigo-400/25 dark:focus:border-indigo-500/40"
-                        )}
-                    />
-
-                    <input
-                        name="email"
-                        type="email"
-                        placeholder="Email istituzionale *"
-                        required
-                        className={cx(
-                            "w-full rounded-2xl border px-4 py-3 text-sm outline-none",
-                            "bg-white border-neutral-200 text-neutral-900 placeholder:text-neutral-400",
-                            "focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-300",
-                            "dark:bg-neutral-950/40 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500",
-                            "dark:focus:ring-indigo-400/25 dark:focus:border-indigo-500/40"
-                        )}
-                    />
-
-                    <input
-                        name="ente"
-                        placeholder="Ente / Struttura (opzionale)"
-                        className={cx(
-                            "w-full rounded-2xl border px-4 py-3 text-sm outline-none",
-                            "bg-white border-neutral-200 text-neutral-900 placeholder:text-neutral-400",
-                            "focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-300",
-                            "dark:bg-neutral-950/40 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500",
-                            "dark:focus:ring-indigo-400/25 dark:focus:border-indigo-500/40"
-                        )}
-                    />
-
-                    <textarea
-                        name="note"
-                        rows={4}
-                        placeholder="Motivazione / ruolo / note (opzionale)"
-                        className={cx(
-                            "w-full rounded-2xl border px-4 py-3 text-sm outline-none",
-                            "bg-white border-neutral-200 text-neutral-900 placeholder:text-neutral-400",
-                            "focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-300",
-                            "dark:bg-neutral-950/40 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500",
-                            "dark:focus:ring-indigo-400/25 dark:focus:border-indigo-500/40"
-                        )}
-                    />
-
-                    <button
-                        disabled={pending}
-                        className={cx(
-                            "w-full rounded-2xl px-4 py-3 text-sm font-semibold transition",
-                            "bg-neutral-900 text-white hover:bg-neutral-800",
-                            "dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-white",
-                            "disabled:opacity-60 disabled:cursor-not-allowed"
-                        )}
-                    >
-                        {pending ? "Invio..." : "Invia richiesta"}
-                    </button>
-
-                    <div className="text-xs text-neutral-600 dark:text-neutral-400">
-                        Le richieste saranno valutate dall’amministrazione. Se hai già una richiesta pendente, non inviare duplicati.
-                    </div>
-                </form>
             </div>
         </div>
     );

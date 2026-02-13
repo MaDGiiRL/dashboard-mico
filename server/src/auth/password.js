@@ -1,4 +1,4 @@
-// server/auth/password.js
+// server/src/auth/password.js
 import bcrypt from "bcryptjs";
 
 export async function hashPassword(password) {

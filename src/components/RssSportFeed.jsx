@@ -153,6 +153,9 @@ export default function RssSportFeed({
         setError(null);
         setLoading(true);
 
+        // abort precedente
+        abortRef.current?.abort?.();
+
         const ac = new AbortController();
         abortRef.current = ac;
 
@@ -165,7 +168,12 @@ export default function RssSportFeed({
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
+            if (ac.signal.aborted) return;
+
             const text = await res.text();
+
+            if (ac.signal.aborted) return;
+
             const parsed = parseRssXml(text);
 
             const filtered = (parsed.items || []).filter((it) => itemMatchesKeywords(it, keywords));
@@ -187,9 +195,23 @@ export default function RssSportFeed({
         }
     }
 
+    // ✅ wrapper: MAI unhandled promise / AbortError in console
+    async function loadSafe() {
+        try {
+            await load();
+        } catch (e) {
+            if (e?.name === "AbortError") return;
+            // non deve mai esplodere in console come "Uncaught (in promise)"
+            // eslint-disable-next-line no-console
+            console.warn("RSS load error:", e);
+        }
+    }
+
     useEffect(() => {
-        void load().catch(() => { });
+        void loadSafe();
         return () => {
+            // invalida le risposte tardive e abortisce il fetch in corso
+            seqRef.current++;
             abortRef.current?.abort?.();
             abortRef.current = null;
         };
@@ -198,7 +220,7 @@ export default function RssSportFeed({
 
     useEffect(() => {
         if (!refreshIntervalMs || refreshIntervalMs < 10_000) return;
-        const id = window.setInterval(() => void load().catch(() => { }), refreshIntervalMs);
+        const id = window.setInterval(() => void loadSafe(), refreshIntervalMs);
         return () => window.clearInterval(id);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchUrl, refreshIntervalMs, limit, kwKey]);
@@ -233,7 +255,12 @@ export default function RssSportFeed({
         return buckets;
     }, [items]);
 
-    const outerStyle = height === "100%" ? { height: "100%" } : typeof height === "number" ? { height } : undefined;
+    const outerStyle =
+        height === "100%"
+            ? { height: "100%" }
+            : typeof height === "number"
+                ? { height }
+                : undefined;
 
     if (variant !== "sidebar") {
         return (
@@ -257,24 +284,28 @@ export default function RssSportFeed({
             {/* top accent */}
             <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500" />
 
-            {/* header (no border) */}
+            {/* header */}
             <div className="sticky top-0 z-10 bg-white/55 backdrop-blur-md">
                 <div className="px-4 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                         <div className="text-[11px] text-neutral-600 flex items-center gap-2">
                             <span className="inline-flex items-center gap-1">
                                 <Clock size={12} />
-                                {lastUpdated ? new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(lastUpdated) : "—"}
+                                {lastUpdated
+                                    ? new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(lastUpdated)
+                                    : "—"}
                             </span>
                             <span className="opacity-40">•</span>
                             <span>auto {Math.round(refreshIntervalMs / 1000)}s</span>
                         </div>
-                        <div className="text-[12px] font-semibold text-neutral-900 truncate">{channelTitle || "ADNKRONOS"}</div>
+                        <div className="text-[12px] font-semibold text-neutral-900 truncate">
+                            {channelTitle || "ADNKRONOS"}
+                        </div>
                     </div>
 
                     <button
                         type="button"
-                        onClick={() => void load().catch(() => { })}
+                        onClick={() => void loadSafe()}
                         disabled={loading}
                         className={cx(
                             "rounded-2xl px-3 py-2 text-xs font-semibold transition flex items-center gap-2",
@@ -322,7 +353,9 @@ export default function RssSportFeed({
                                 return (
                                     <div key={section}>
                                         <div className="px-1 pb-2 flex items-center justify-between">
-                                            <div className="text-[11px] font-extrabold uppercase tracking-wide text-neutral-600">{section}</div>
+                                            <div className="text-[11px] font-extrabold uppercase tracking-wide text-neutral-600">
+                                                {section}
+                                            </div>
                                             <span className="text-[11px] text-neutral-500">{xs.length}</span>
                                         </div>
 

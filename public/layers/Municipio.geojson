@@ -1,0 +1,180 @@
+{
+    "type": "FeatureCollection",
+    "name": "Municipio",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 9,
+                "Comune": "Ponte nelle Alpi"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.301536327575075,
+                    46.174381245551899
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 5,
+                "Comune": "Cortina d'Ampezzo"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.138679348015923,
+                    46.536647048473384
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 10,
+                "Comune": "San Vito di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.205070546626105,
+                    46.461478384257411
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 3,
+                "Comune": "Borca di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.218734541085231,
+                    46.43826415022022
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 1,
+                "Comune": "Auronzo di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.444851849135233,
+                    46.549996287744477
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 2,
+                "Comune": "Belluno"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.216553277822371,
+                    46.138158176730713
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 4,
+                "Comune": "Calalzo di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.380517516442243,
+                    46.447233726052872
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 6,
+                "Comune": "Longarone"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.300027548678829,
+                    46.270345719219335
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 12,
+                "Comune": "Vodo di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.250441067983731,
+                    46.418166041449325
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 11,
+                "Comune": "Valle di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.328020631999212,
+                    46.41694418524952
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 8,
+                "Comune": "Pieve di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.374579701647807,
+                    46.429470521219855
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 7,
+                "Comune": "Perarolo di Cadore"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.35544961673372,
+                    46.396682345968777
+                ]
+            }
+        }
+    ]
+}

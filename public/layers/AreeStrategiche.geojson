@@ -1,0 +1,188 @@
+{
+    "type": "FeatureCollection",
+    "name": "Aree strategiche",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Filtro Zona Viola",
+                "locality": null,
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.204729905273016,
+                    46.468418284601782,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Hub Dolomitibus",
+                "locality": "Longarone Fiere",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.304456634428581,
+                    46.269288919943847,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Cortina",
+                "locality": null,
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.137785014508875,
+                    46.541993358842177,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Canonica - Ex Asilo",
+                "locality": "Codissago",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.309689542059655,
+                    46.27597212585502,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Parcheggio",
+                "locality": "Codissago",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.309689952268709,
+                    46.276880332619946,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Parcheggio",
+                "locality": "Codissago",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.30812750879336,
+                    46.277997042362088,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Baita ANA Longarone",
+                "locality": null,
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.302123945516003,
+                    46.27693190250028,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Palestra",
+                "locality": "San Vito",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.202984734650954,
+                    46.460487484689793,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Asilo Vecio",
+                "locality": "San Vito",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.20474853381595,
+                    46.459686782113756,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Unione Montana",
+                "locality": "Borca",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.218186848142215,
+                    46.437238254133881,
+                    0.0
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Ex Pattinaggio",
+                "locality": "Vodo",
+                "note": null
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    12.248160144456639,
+                    46.416139757943675,
+                    0.0
+                ]
+            }
+        }
+    ]
+}

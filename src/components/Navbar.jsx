@@ -16,7 +16,7 @@ const links = [
     { to: "/", label: "Dashboard", Icon: LayoutDashboard, tone: "indigo" },
     { to: "/coc-safety", label: "Centri Operativi", Icon: Building2, tone: "amber" },
     { to: "/inventario", label: "Volontariato", Icon: Boxes, tone: "teal" },
-    { to: "/criticita", label: "Criticità", Icon: AlertTriangle, tone: "rose" },
+    // { to: "/criticita", label: "Criticità", Icon: AlertTriangle, tone: "rose" },
     { to: "/reperibilita", label: "Contatti", Icon: Phone, tone: "violet" },
     { to: "/mappa", label: "Mappa", Icon: MapPinned, tone: "emerald" },
     { to: "/utility", label: "Servizi Essenziali", Icon: AlertTriangle, tone: "fuchsia" },

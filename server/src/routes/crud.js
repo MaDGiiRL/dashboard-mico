@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { q } from "../db.js";
+import { q, qAsUser } from "../db.js";
 import { requireRole } from "../auth/middleware.js";
 import { logActivity } from "../audit/audit.js";
 
@@ -30,25 +30,20 @@ export async function crudRoutes(app) {
         const base = `/api/${r.table}`;
 
         app.get(base, async (req, reply) => {
-            try {
-                requireRole(["admin", "editor", "viewer"])(req);
-                const order = r.orderBy ? `order by ${r.orderBy}` : "order by updated_at desc";
-                const rows = await q(`select * from ${r.table} ${order}`);
-                return { rows };
-            } catch (e) {
-                return reply.status(403).send({ error: e.message || "Forbidden" });
-            }
+            await requireRole(["admin", "editor", "viewer"])(req, reply);
+            if (reply.sent) return;
+
+            const order = r.orderBy ? `order by ${r.orderBy}` : "order by updated_at desc";
+            const rows = await q(`select * from ${r.table} ${order}`);
+            return { rows };
         });
 
         app.post(base, async (req, reply) => {
+            await requireRole(["admin", "editor"])(req, reply);
+            if (reply.sent) return;
+
             try {
-                requireRole(["admin", "editor"])(req);
                 const payload = req.body || {};
-
-                if (payload.day) {
-                    await q(`insert into op_days(day) values($1) on conflict (day) do nothing`, [payload.day]);
-                }
-
                 const keys = Object.keys(payload);
                 if (keys.length === 0) return reply.status(400).send({ error: "Empty payload" });
 
@@ -56,7 +51,7 @@ export async function crudRoutes(app) {
                 const vals = keys.map((_, i) => `$${i + 1}`).join(",");
                 const params = keys.map((k) => payload[k]);
 
-                const created = (await q(`insert into ${r.table} (${cols}) values (${vals}) returning *`, params))[0];
+                const created = (await qAsUser(req.user, `insert into ${r.table} (${cols}) values (${vals}) returning *`, params))[0];
 
                 await logActivity({
                     actor: req.user,
@@ -75,17 +70,15 @@ export async function crudRoutes(app) {
         });
 
         app.patch(`${base}/:id`, async (req, reply) => {
+            await requireRole(["admin", "editor"])(req, reply);
+            if (reply.sent) return;
+
             try {
-                requireRole(["admin", "editor"])(req);
                 const { id } = idParam.parse(req.params);
                 const patch = req.body || {};
 
                 const before = (await q(`select * from ${r.table} where id=$1`, [id]))[0];
                 if (!before) return reply.status(404).send({ error: "Not found" });
-
-                if (patch.day) {
-                    await q(`insert into op_days(day) values($1) on conflict (day) do nothing`, [patch.day]);
-                }
 
                 const keys = Object.keys(patch);
                 if (keys.length === 0) return reply.status(400).send({ error: "Empty patch" });
@@ -93,10 +86,7 @@ export async function crudRoutes(app) {
                 const sets = keys.map((k, i) => `"${k}"=$${i + 2}`).join(",");
                 const params = [id, ...keys.map((k) => patch[k])];
 
-                const after = (await q(
-                    `update ${r.table} set ${sets}, updated_at=now() where id=$1 returning *`,
-                    params
-                ))[0];
+                const after = (await qAsUser(req.user, `update ${r.table} set ${sets}, updated_at=now() where id=$1 returning *`, params))[0];
 
                 await logActivity({
                     actor: req.user,
@@ -116,14 +106,16 @@ export async function crudRoutes(app) {
         });
 
         app.delete(`${base}/:id`, async (req, reply) => {
+            await requireRole(["admin"])(req, reply);
+            if (reply.sent) return;
+
             try {
-                requireRole(["admin"])(req);
                 const { id } = idParam.parse(req.params);
 
                 const before = (await q(`select * from ${r.table} where id=$1`, [id]))[0];
                 if (!before) return reply.status(404).send({ error: "Not found" });
 
-                await q(`delete from ${r.table} where id=$1`, [id]);
+                await qAsUser(req.user, `delete from ${r.table} where id=$1`, [id]);
 
                 await logActivity({
                     actor: req.user,

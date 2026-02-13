@@ -1,9 +1,7 @@
-// src/pages/Admin.jsx
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Card from "../components/Card.jsx";
 import { api } from "../lib/api.js";
 import { useMemo, useState } from "react";
-import { UserPlus, ShieldCheck, Users, Search, X } from "lucide-react";
+import { UserPlus, ShieldCheck, Users, Search, X, ScrollText, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 
 function cx(...xs) {
     return xs.filter(Boolean).join(" ");
@@ -11,11 +9,7 @@ function cx(...xs) {
 
 /* ---------- UI tokens (stesso stile, NO dark) ---------- */
 const UI = {
-    card: cx(
-        "rounded-3xl overflow-hidden",
-        "bg-white/55 backdrop-blur-md",
-        "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"
-    ),
+    card: cx("rounded-3xl overflow-hidden", "bg-white/55 backdrop-blur-md", "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"),
     accent: "h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500",
     softRing: "ring-1 ring-white/45",
     dim: "text-neutral-600",
@@ -30,10 +24,6 @@ const UI = {
         "bg-white/75 text-neutral-900 " +
         "shadow-sm ring-1 ring-white/45 " +
         "focus:ring-4 focus:ring-indigo-500/15",
-    btn:
-        "rounded-2xl px-3 py-2 text-sm font-extrabold transition flex items-center gap-2 " +
-        "bg-white/55 hover:bg-white/70 text-neutral-900 shadow-sm ring-1 ring-white/45 " +
-        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
     btnDanger:
         "rounded-2xl px-3 py-2 text-sm font-extrabold transition flex items-center gap-2 " +
         "bg-rose-600 hover:bg-rose-500 text-white shadow-sm ring-1 ring-rose-600/30 " +
@@ -42,16 +32,17 @@ const UI = {
         "rounded-2xl px-3 py-2 text-sm font-extrabold transition flex items-center gap-2 " +
         "bg-neutral-900 hover:bg-neutral-800 text-white shadow-sm ring-1 ring-black/10 " +
         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-neutral-900/15",
+    btnGhost:
+        "rounded-2xl px-3 py-2 text-sm font-extrabold transition flex items-center gap-2 " +
+        "bg-white/35 hover:bg-white/55 text-neutral-900 shadow-sm ring-1 ring-white/45",
 };
 
 function Input({ className, ...props }) {
     return <input {...props} className={cx(UI.input, className)} />;
 }
+
 function Select({ className, ...props }) {
     return <select {...props} className={cx(UI.select, className)} />;
-}
-function Btn({ className, ...props }) {
-    return <button type="button" {...props} className={cx(UI.btn, className)} />;
 }
 
 function Pill({ tone = "neutral", children }) {
@@ -61,6 +52,8 @@ function Pill({ tone = "neutral", children }) {
         approved: "border-emerald-500/30 bg-emerald-500/10 text-emerald-900",
         rejected: "border-rose-500/30 bg-rose-500/10 text-rose-900",
         revoked: "border-neutral-400/30 bg-neutral-500/10 text-neutral-900",
+        active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-900",
+        disabled: "border-rose-500/30 bg-rose-500/10 text-rose-900",
     };
     return (
         <span className={cx("inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold", map[tone] || map.neutral)}>
@@ -75,6 +68,7 @@ function ToneCard({ tone = "neutral", title, subtitle, right, children, icon: Ic
         amber: "from-amber-500 via-rose-500 to-fuchsia-500",
         emerald: "from-emerald-500 via-sky-500 to-indigo-500",
         sky: "from-sky-500 via-indigo-500 to-fuchsia-500",
+        slate: "from-slate-700 via-slate-900 to-neutral-900",
     };
     const a = accents[tone] || accents.neutral;
 
@@ -103,10 +97,77 @@ function ToneCard({ tone = "neutral", title, subtitle, right, children, icon: Ic
     );
 }
 
+function ErrorBox({ err }) {
+    if (!err) return null;
+    return (
+        <div className="rounded-3xl border border-rose-500/25 bg-rose-500/10 p-4 text-sm text-rose-900">
+            {String(err?.message || err)}
+        </div>
+    );
+}
+
+/** colore per operazione DB */
+function auditTone(op) {
+    const v = String(op || "").toUpperCase();
+    if (v === "INSERT") return "emerald";
+    if (v === "UPDATE") return "amber";
+    if (v === "DELETE") return "rose";
+    return "neutral";
+}
+
+function AuditCard({ row }) {
+    const tone = auditTone(row?.op);
+    const accents = {
+        emerald: "from-emerald-500/25 via-emerald-500/10 to-white/0",
+        amber: "from-amber-500/25 via-amber-500/10 to-white/0",
+        rose: "from-rose-500/25 via-rose-500/10 to-white/0",
+        neutral: "from-neutral-900/10 via-white/50 to-white/0",
+    };
+
+    const badge = {
+        emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-900",
+        amber: "border-amber-500/30 bg-amber-500/10 text-amber-900",
+        rose: "border-rose-500/30 bg-rose-500/10 text-rose-900",
+        neutral: "border-neutral-200/70 bg-white/60 text-neutral-900",
+    };
+
+    return (
+        <div className={cx("rounded-3xl overflow-hidden", "bg-white/55 ring-1 ring-white/45 shadow-sm")}>
+            <div className={cx("h-1.5 bg-gradient-to-r", accents[tone] || accents.neutral)} />
+            <div className="p-4 bg-white/35">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className={cx("inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold", badge[tone] || badge.neutral)}>
+                                {String(row?.op || "-").toUpperCase()}
+                            </span>
+                            <div className="font-extrabold text-neutral-900 truncate">{row?.table_name}</div>
+                            <div className="text-xs text-neutral-500">{row?.changed_at ? new Date(row.changed_at).toLocaleString() : ""}</div>
+                        </div>
+
+                        <div className="mt-2 text-xs text-neutral-700">
+                            <span className="font-semibold">Chi:</span>{" "}
+                            {row?.actor_email || "system"}
+                            {row?.actor_role ? ` (${row.actor_role})` : ""}
+                            {row?.actor_user_id ? ` • id:${row.actor_user_id}` : ""}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className={cx("text-xs font-extrabold rounded-full px-3 py-1 border", "border-white/40 bg-white/40 text-neutral-800")}>
+                            audit_changes
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Admin() {
     const qc = useQueryClient();
 
-    // --- existing users ---
+    // ---- Users ----
     const usersQ = useQuery({ queryKey: ["admin_users"], queryFn: () => api.adminUsers() });
 
     const createUser = useMutation({
@@ -119,8 +180,13 @@ export default function Admin() {
         onSuccess: () => qc.invalidateQueries({ queryKey: ["admin_users"] }),
     });
 
-    // --- access requests ---
-    const reqQ = useQuery({ queryKey: ["admin_access_requests"], queryFn: () => api.adminAccessRequests() });
+    const setActive = useMutation({
+        mutationFn: ({ id, is_active }) => api.adminSetActive(id, is_active),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["admin_users"] }),
+    });
+
+    // ---- Access requests ----
+    const reqQ = useQuery({ queryKey: ["admin_access_requests"], queryFn: () => api.adminAccessRequests("all") });
 
     const approve = useMutation({
         mutationFn: ({ id, role }) => api.adminApproveAccessRequest(id, { role }),
@@ -142,7 +208,6 @@ export default function Admin() {
 
     const reqRows = useMemo(() => {
         let rows = reqQ.data?.rows || [];
-
         if (reqFilter !== "all") rows = rows.filter((r) => r.status === reqFilter);
 
         const q = reqSearch.trim().toLowerCase();
@@ -151,9 +216,34 @@ export default function Admin() {
                 `${r.display_name || ""} ${r.email || ""} ${r.organization || ""} ${r.reason || ""}`.toLowerCase().includes(q)
             );
         }
-
         return rows;
     }, [reqQ.data, reqFilter, reqSearch]);
+
+    // ---- DB AUDIT (solo) paginato 10 ----
+    const PAGE_SIZE = 10;
+    const [page, setPage] = useState(0); // 0-based
+    const [refreshTick, setRefreshTick] = useState(0);
+
+    const auditQ = useQuery({
+        queryKey: ["admin_db_audit_paged", page, refreshTick],
+        queryFn: async () => {
+            // backend attuale supporta solo "limit"
+            // qui prendiamo più righe e facciamo slicing lato FE.
+            // (se vuoi paginazione vera lato BE: ti do l'endpoint con offset/cursor)
+            const needed = (page + 1) * PAGE_SIZE;
+            const out = await api.adminDbAudit(Math.min(needed, 500));
+            const all = out?.rows || [];
+            const start = page * PAGE_SIZE;
+            const rows = all.slice(start, start + PAGE_SIZE);
+            return { rows, hasMore: all.length > start + PAGE_SIZE, totalLoaded: all.length };
+        },
+        keepPreviousData: true,
+    });
+
+    const refreshAudit = () => setRefreshTick((x) => x + 1);
+
+    const canPrev = page > 0;
+    const canNext = !!auditQ.data?.hasMore;
 
     return (
         <div className="space-y-6">
@@ -163,7 +253,7 @@ export default function Admin() {
                 <div className="p-6 bg-white/40">
                     <div className="text-xs font-extrabold tracking-wide text-neutral-600">GESTIONE</div>
                     <h1 className="mt-1 text-2xl font-extrabold text-neutral-900">Admin Panel</h1>
-                    <div className={cx("mt-2 text-xs", UI.dim2)}>Utenti, ruoli e richieste di accesso</div>
+                    <div className={cx("mt-2 text-xs", UI.dim2)}>Utenti, ruoli, richieste abilitazione + DB audit</div>
                 </div>
             </div>
 
@@ -177,12 +267,7 @@ export default function Admin() {
                     <div className="flex items-center gap-2">
                         <div className="relative">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                            <Input
-                                value={reqSearch}
-                                onChange={(e) => setReqSearch(e.target.value)}
-                                placeholder="Cerca…"
-                                className="pl-9 w-[220px]"
-                            />
+                            <Input value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} placeholder="Cerca…" className="pl-9 w-[220px]" />
                         </div>
                     </div>
                 }
@@ -196,16 +281,10 @@ export default function Admin() {
                         <option value="all">Tutte</option>
                     </Select>
 
-                    <div className={cx("text-sm", UI.dim)}>
-                        {reqQ.isLoading ? "Caricamento…" : `${reqRows.length} richieste`}
-                    </div>
+                    <div className={cx("text-sm", UI.dim)}>{reqQ.isLoading ? "Caricamento…" : `${reqRows.length} richieste`}</div>
                 </div>
 
-                {reqQ.isError && (
-                    <div className="rounded-3xl border border-rose-500/25 bg-rose-500/10 p-4 text-sm text-rose-900">
-                        {String(reqQ.error?.message || reqQ.error)}
-                    </div>
-                )}
+                <ErrorBox err={reqQ.isError ? reqQ.error : null} />
 
                 <div className="space-y-2 text-sm">
                     {reqRows.map((r) => (
@@ -236,33 +315,21 @@ export default function Admin() {
                                     <div className="flex flex-wrap gap-2 sm:justify-end">
                                         {r.status === "pending" && (
                                             <>
-                                                <Select
-                                                    defaultValue="viewer"
-                                                    className="w-[220px]"
-                                                    onChange={(e) => approve.mutate({ id: r.id, role: e.target.value })}
-                                                >
+                                                <Select defaultValue="viewer" className="w-[220px]" onChange={(e) => approve.mutate({ id: r.id, role: e.target.value })}>
                                                     <option value="viewer">Approve as viewer</option>
                                                     <option value="editor">Approve as editor</option>
                                                     <option value="admin">Approve as admin</option>
                                                 </Select>
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() => reject.mutate({ id: r.id, note: "Rifiutata da admin" })}
-                                                    className={UI.btnDanger}
-                                                >
+                                                <button type="button" onClick={() => reject.mutate({ id: r.id, note: "Rifiutata da admin" })} className={UI.btnDanger}>
                                                     <X size={16} /> Rifiuta
                                                 </button>
                                             </>
                                         )}
 
                                         {r.status === "approved" && (
-                                            <button
-                                                type="button"
-                                                onClick={() => revoke.mutate({ id: r.id, note: "Revocata da admin" })}
-                                                className={UI.btnDark}
-                                            >
-                                                Revoca
+                                            <button type="button" onClick={() => revoke.mutate({ id: r.id, note: "Revocata da admin" })} className={UI.btnDark}>
+                                                Revoca richiesta
                                             </button>
                                         )}
                                     </div>
@@ -283,9 +350,9 @@ export default function Admin() {
                         e.preventDefault();
                         const fd = new FormData(e.currentTarget);
                         createUser.mutate({
-                            email: String(fd.get("email")),
-                            password: String(fd.get("password")),
-                            display_name: String(fd.get("display_name")),
+                            email: String(fd.get("email") || ""),
+                            password: String(fd.get("password") || ""),
+                            display_name: String(fd.get("display_name") || ""),
                             role: String(fd.get("role") || "viewer"),
                         });
                         e.currentTarget.reset();
@@ -314,36 +381,95 @@ export default function Admin() {
             </ToneCard>
 
             {/* ===== Users ===== */}
-            <ToneCard tone="emerald" icon={Users} title="Utenti" subtitle="Ruoli e account">
+            <ToneCard tone="emerald" icon={Users} title="Utenti" subtitle="Ruoli + attivo/disabilitato">
+                <ErrorBox err={usersQ.isError ? usersQ.error : null} />
+
                 <div className="space-y-2 text-sm">
                     {(usersQ.data?.users || []).map((u) => (
                         <div
                             key={u.id}
                             className={cx(
-                                "rounded-3xl p-4 flex items-center justify-between gap-3",
+                                "rounded-3xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3",
                                 "bg-white/55 ring-1 ring-white/45 shadow-sm"
                             )}
                         >
                             <div className="min-w-0">
-                                <div className="font-extrabold text-neutral-900 truncate">{u.display_name}</div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="font-extrabold text-neutral-900 truncate">{u.display_name}</div>
+                                    <Pill tone={u.is_active ? "active" : "disabled"}>{u.is_active ? "active" : "disabled"}</Pill>
+                                </div>
                                 <div className={cx("text-sm truncate", UI.dim)}>{u.email}</div>
                             </div>
 
-                            <Select
-                                className="w-[180px]"
-                                value={u.role}
-                                onChange={(e) => setRole.mutate({ id: u.id, role: e.target.value })}
-                            >
-                                <option value="viewer">Viewer</option>
-                                <option value="editor">Editor</option>
-                                <option value="admin">Admin</option>
-                            </Select>
+                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                                <Select className="w-[180px]" value={u.role} onChange={(e) => setRole.mutate({ id: u.id, role: e.target.value })}>
+                                    <option value="viewer">Viewer</option>
+                                    <option value="editor">Editor</option>
+                                    <option value="admin">Admin</option>
+                                </Select>
+
+                                <button type="button" className={u.is_active ? UI.btnDanger : UI.btnDark} onClick={() => setActive.mutate({ id: u.id, is_active: !u.is_active })}>
+                                    {u.is_active ? "Disabilita" : "Riabilita"}
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             </ToneCard>
 
-            {/* NOTE: Card import lasciato (se lo usi altrove). Qui stiamo usando uno stile uniforme anche senza toccare Card.jsx */}
+            {/* ===== DB AUDIT (SOLO) ===== */}
+            <ToneCard
+                tone="slate"
+                icon={ScrollText}
+                title="DB Audit"
+                subtitle="Ultime modifiche (10 per pagina) • INSERT / UPDATE / DELETE"
+                right={
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            className={cx(UI.btnGhost, !canPrev && "opacity-50 cursor-not-allowed")}
+                            disabled={!canPrev}
+                            onClick={() => setPage((p) => Math.max(0, p - 1))}
+                        >
+                            <ChevronLeft size={16} /> Prev
+                        </button>
+
+                        <div className="rounded-2xl px-3 py-2 text-xs font-extrabold bg-white/40 ring-1 ring-white/45 text-neutral-800">
+                            Pagina {page + 1}
+                        </div>
+
+                        <button
+                            type="button"
+                            className={cx(UI.btnGhost, !canNext && "opacity-50 cursor-not-allowed")}
+                            disabled={!canNext}
+                            onClick={() => setPage((p) => p + 1)}
+                        >
+                            Next <ChevronRight size={16} />
+                        </button>
+
+                        <button type="button" className={UI.btnGhost} onClick={refreshAudit}>
+                            <RefreshCw size={16} /> Refresh
+                        </button>
+                    </div>
+                }
+            >
+                <ErrorBox err={auditQ.isError ? auditQ.error : null} />
+
+                <div className="space-y-2 text-sm">
+                    {(auditQ.data?.rows || []).map((row) => (
+                        <AuditCard key={row.id} row={row} />
+                    ))}
+
+                    {(auditQ.data?.rows || []).length === 0 && (
+                        <div className={cx("text-sm", UI.dim)}>{auditQ.isLoading ? "Caricamento…" : "Nessuna modifica tracciata."}</div>
+                    )}
+                </div>
+
+                <div className={cx("mt-4 text-xs", UI.dim2)}>
+                    Nota: questa paginazione è client-side (carica fino a 500 righe dal backend e mostra 10 per volta).
+                    Se vuoi paginazione vera (offset/cursor) dimmelo e ti do i due endpoint backend + FE.
+                </div>
+            </ToneCard>
         </div>
     );
 }

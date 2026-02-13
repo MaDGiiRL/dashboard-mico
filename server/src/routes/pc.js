@@ -1,0 +1,182 @@
+// server/src/routes/pc.js
+import { z } from "zod";
+import { q } from "../db.js";
+import { requireRole } from "../auth/middleware.js";
+
+export async function pcRoutes(app) {
+    // GET /pc/month?kind=olympics&month=2026-02
+    app.get(
+        "/pc/month",
+        { preHandler: requireRole(["admin", "editor", "viewer"]) },
+        async (req, reply) => {
+            try {
+                const Q = z
+                    .object({
+                        kind: z.enum(["olympics", "paralympics"]),
+                        month: z.string().regex(/^\d{4}-\d{2}$/),
+                    })
+                    .parse(req.query);
+
+                const start = `${Q.month}-01`; // ok per tutti i mesi
+
+                const rows = await q(
+                    `
+        select
+          id,
+          kind,
+          day,
+          shift,
+          slot,
+          person_name,
+          person_phone
+        from pc_assignments
+        where kind = $1
+          and day >= $2::date
+          and day < ($2::date + interval '1 month')
+        order by day asc, shift asc, slot asc
+        `,
+                    [Q.kind, start]
+                );
+
+                const ui = await q(
+                    `
+        select kind, day, active_shift
+        from pc_day_ui
+        where kind = $1
+          and day >= $2::date
+          and day < ($2::date + interval '1 month')
+        `,
+                    [Q.kind, start]
+                );
+
+                return { rows, ui };
+            } catch (e) {
+                return reply.status(400).send({ error: e?.message || "Bad request" });
+            }
+        }
+    );
+
+
+    // POST /pc/day-ui  { kind, day, active_shift }
+    app.post(
+        "/pc/day-ui",
+        { preHandler: requireRole(["admin", "editor"]) },
+        async (req, reply) => {
+            try {
+                const B = z
+                    .object({
+                        kind: z.enum(["olympics", "paralympics"]),
+                        day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+                        active_shift: z.enum(["20-8", "8-20"]),
+                    })
+                    .parse(req.body);
+
+                const row = await q(
+                    `
+          insert into pc_day_ui(kind, day, active_shift)
+          values ($1, $2::date, $3)
+          on conflict (kind, day)
+          do update set active_shift = excluded.active_shift, updated_at = now()
+          returning kind, day, active_shift
+          `,
+                    [B.kind, B.day, B.active_shift]
+                ).then((r) => r[0]);
+
+                return { row };
+            } catch (e) {
+                return reply.status(400).send({ error: e?.message || "Bad request" });
+            }
+        }
+    );
+
+    // POST /pc/move
+    // { kind, from:{day,shift,slot}, to:{day,shift,slot} }
+    // swap se destinazione occupata
+    app.post(
+        "/pc/move",
+        { preHandler: requireRole(["admin", "editor"]) },
+        async (req, reply) => {
+            const client = await app.pg?.connect?.(); // se usi fastify-postgres
+            try {
+                const B = z
+                    .object({
+                        kind: z.enum(["olympics", "paralympics"]),
+                        from: z.object({
+                            day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+                            shift: z.enum(["20-8", "8-20"]),
+                            slot: z.number().int().min(1).max(3),
+                        }),
+                        to: z.object({
+                            day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+                            shift: z.enum(["20-8", "8-20"]),
+                            slot: z.number().int().min(1).max(3),
+                        }),
+                    })
+                    .parse(req.body);
+
+                // Se non hai fastify-postgres, fai transazione col tuo helper q.
+                // Qui uso transazione "manuale" tramite q: BEGIN/COMMIT/ROLLBACK.
+                await q("begin");
+
+                const fromRow = await q(
+                    `
+          select id, day, shift, slot
+          from pc_assignments
+          where kind=$1 and day=$2::date and shift=$3 and slot=$4
+          for update
+          `,
+                    [B.kind, B.from.day, B.from.shift, B.from.slot]
+                ).then((r) => r[0]);
+
+                if (!fromRow) {
+                    await q("rollback");
+                    return reply.status(400).send({ error: "Slot sorgente vuoto" });
+                }
+
+                const toRow = await q(
+                    `
+          select id, day, shift, slot
+          from pc_assignments
+          where kind=$1 and day=$2::date and shift=$3 and slot=$4
+          for update
+          `,
+                    [B.kind, B.to.day, B.to.shift, B.to.slot]
+                ).then((r) => r[0]);
+
+                // sposta from -> to
+                await q(
+                    `
+          update pc_assignments
+          set day=$1::date, shift=$2, slot=$3, updated_at=now()
+          where id=$4
+          `,
+                    [B.to.day, B.to.shift, B.to.slot, fromRow.id]
+                );
+
+                // se destinazione occupata: sposta to -> from (swap)
+                if (toRow) {
+                    await q(
+                        `
+            update pc_assignments
+            set day=$1::date, shift=$2, slot=$3, updated_at=now()
+            where id=$4
+            `,
+                        [B.from.day, B.from.shift, B.from.slot, toRow.id]
+                    );
+                }
+
+                await q("commit");
+                return { ok: true, swapped: Boolean(toRow) };
+            } catch (e) {
+                try {
+                    await q("rollback");
+                } catch { }
+                return reply.status(400).send({ error: e?.message || "Bad request" });
+            } finally {
+                try {
+                    client?.release?.();
+                } catch { }
+            }
+        }
+    );
+}

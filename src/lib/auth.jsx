@@ -1,4 +1,3 @@
-// src/lib/auth.jsx
 import React from "react";
 import { api, setToken, getToken } from "./api.js";
 
@@ -14,7 +13,6 @@ export function AuthProvider({ children }) {
             const me = await api.me();
             setUser(me?.user || null);
         } catch {
-            // 401 o token scaduto
             setUser(null);
             setToken(null);
         } finally {
@@ -22,7 +20,6 @@ export function AuthProvider({ children }) {
         }
     }, []);
 
-    // ✅ non chiamare /me se non c’è token
     React.useEffect(() => {
         const t = getToken();
         if (!t) {
@@ -35,28 +32,22 @@ export function AuthProvider({ children }) {
 
     const login = async (email, password) => {
         setLoading(true);
-        try {
-            const out = await api.login(email, password);
-
-            if (!out?.token) throw new Error("Token mancante nella risposta /auth/login");
-
-            setToken(out.token);
-
-            // se il backend restituisce user, lo mettiamo subito
-            if (out?.user) setUser(out.user);
-
-            // riallineo con /me (opzionale ma pulito)
-            await refresh();
-            return out;
-        } finally {
-            // refresh gestisce loading in uscita
-        }
+        const out = await api.login(email, password);
+        if (!out?.token) throw new Error("Token mancante nella risposta /auth/login");
+        setToken(out.token);
+        if (out?.user) setUser(out.user);
+        await refresh();
+        return out;
     };
 
     const logout = async () => {
-        setToken(null);
-        setUser(null);
-        setLoading(false);
+        try {
+            await api.logout().catch(() => { });
+        } finally {
+            setToken(null);
+            setUser(null);
+            setLoading(false);
+        }
     };
 
     const role = user?.role || null;

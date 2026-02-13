@@ -1,6 +1,18 @@
 // src/pages/Utility.jsx
-import { useMemo, useState } from "react";
-import { ExternalLink, KeyRound, PlugZap, TrafficCone, Copy, Check } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    ExternalLink,
+    KeyRound,
+    PlugZap,
+    TrafficCone,
+    Copy,
+    Check,
+    Plus,
+    Trash2,
+    X,
+} from "lucide-react";
+import { api } from "../lib/api.js";
 
 /* ------------------ helpers ------------------ */
 function cx(...xs) {
@@ -14,14 +26,18 @@ async function copyToClipboard(text) {
 
 /* ------------------ UI (stesso stile, NO dark) ------------------ */
 const UI = {
-    card: cx("rounded-3xl overflow-hidden", "bg-white/55 backdrop-blur-md", "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"),
+    card: cx(
+        "rounded-3xl overflow-hidden",
+        "bg-white/55 backdrop-blur-md",
+        "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"
+    ),
     softRing: "ring-1 ring-white/45",
     accent: "h-1.5 bg-gradient-to-r from-sky-500 via-indigo-500 to-fuchsia-500",
     dim: "text-neutral-600",
     dim2: "text-neutral-500",
 };
 
-function Section({ title, icon: Icon, children, right }) {
+function Section({ title, icon: Icon, children, right, subtitle = "Risorse operative e credenziali" }) {
     return (
         <div className={cx(UI.card, UI.softRing)}>
             <div className={UI.accent} />
@@ -35,7 +51,7 @@ function Section({ title, icon: Icon, children, right }) {
                         ) : null}
                         <div className="min-w-0">
                             <div className="text-lg font-extrabold text-neutral-900 truncate">{title}</div>
-                            <div className={cx("text-xs mt-1", UI.dim2)}>Risorse operative e credenziali</div>
+                            <div className={cx("text-xs mt-1", UI.dim2)}>{subtitle}</div>
                         </div>
                     </div>
                     {right ? <div className="shrink-0">{right}</div> : null}
@@ -47,39 +63,44 @@ function Section({ title, icon: Icon, children, right }) {
     );
 }
 
-function LinkCard({ title, subtitle, href, icon: Icon }) {
+function LinkCard({ title, subtitle, href, icon: Icon, right }) {
     return (
-        <a
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className={cx(
-                "group block rounded-3xl overflow-hidden transition",
-                "bg-white/55 ring-1 ring-white/45 shadow-sm hover:bg-white/70",
-                "focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
-            )}
-        >
-            <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500" />
-            <div className="p-5 bg-white/40">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-3">
-                            {Icon ? (
-                                <div className="h-11 w-11 rounded-2xl bg-white/55 ring-1 ring-white/45 shadow-sm grid place-items-center">
-                                    <Icon size={18} className="text-neutral-900" />
+        <div className="relative">
+            <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className={cx(
+                    "group block rounded-3xl overflow-hidden transition",
+                    "bg-white/55 ring-1 ring-white/45 shadow-sm hover:bg-white/70",
+                    "focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                )}
+            >
+                <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500" />
+                <div className="p-5 bg-white/40">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-3">
+                                {Icon ? (
+                                    <div className="h-11 w-11 rounded-2xl bg-white/55 ring-1 ring-white/45 shadow-sm grid place-items-center">
+                                        <Icon size={18} className="text-neutral-900" />
+                                    </div>
+                                ) : null}
+                                <div className="min-w-0">
+                                    <div className="font-extrabold text-neutral-900 truncate">{title}</div>
+                                    {subtitle ? <div className={cx("text-sm mt-1", UI.dim)}>{subtitle}</div> : null}
                                 </div>
-                            ) : null}
-                            <div className="min-w-0">
-                                <div className="font-extrabold text-neutral-900 truncate">{title}</div>
-                                {subtitle ? <div className={cx("text-sm mt-1", UI.dim)}>{subtitle}</div> : null}
                             </div>
                         </div>
-                    </div>
 
-                    <ExternalLink className="h-5 w-5 text-neutral-400 group-hover:text-neutral-700" />
+                        <div className="flex items-center gap-2">
+                            {right}
+                            <ExternalLink className="h-5 w-5 text-neutral-400 group-hover:text-neutral-700" />
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </a>
+            </a>
+        </div>
     );
 }
 
@@ -108,25 +129,132 @@ function FieldCard({ label, value, onCopy, copied }) {
     );
 }
 
+function Modal({ open, title, onClose, children }) {
+    useEffect(() => {
+        if (!open) return;
+        const onKey = (e) => {
+            if (e.key === "Escape") onClose?.();
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [open, onClose]);
+
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-[999]">
+            {/* overlay */}
+            <button
+                type="button"
+                aria-label="Chiudi"
+                onClick={onClose}
+                className="absolute inset-0 w-full h-full bg-black/20"
+            />
+
+            {/* panel */}
+            <div className="relative mx-auto mt-16 w-[92vw] max-w-xl">
+                <div className={cx(UI.card, UI.softRing, "bg-white/70")}>
+                    <div className={UI.accent} />
+                    <div className="p-5 bg-white/50">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="text-lg font-extrabold text-neutral-900">{title}</div>
+                                <div className={cx("text-xs mt-1", UI.dim2)}>Salvato nel database</div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className={cx(
+                                    "h-10 w-10 rounded-2xl grid place-items-center",
+                                    "bg-white/60 ring-1 ring-white/45 shadow-sm hover:bg-white/80",
+                                    "focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                                )}
+                            >
+                                <X className="h-4 w-4 text-neutral-900" />
+                            </button>
+                        </div>
+
+                        <div className="mt-4">{children}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Utility() {
+    const qc = useQueryClient();
+
     const ENEL = "https://www.e-distribuzione.it/interruzione-corrente-primo.html";
     const QMAP = "https://alertnews.qmap.it/";
     const USER_ID = "protezionecivile.ssv@regione.veneto.it";
 
-    // Password: NON hardcodare. Mettila come env var (Vite: import.meta.env.VITE_..., CRA: process.env.REACT_APP_...)
     const PASSWORD =
         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_UTILITY_PSW) ||
         (typeof process !== "undefined" && process.env && process.env.REACT_APP_UTILITY_PSW) ||
         "";
 
     const [copied, setCopied] = useState(null);
-
     const masked = useMemo(() => (PASSWORD ? "•".repeat(Math.min(10, PASSWORD.length)) : "—"), [PASSWORD]);
 
     async function doCopy(kind, text) {
         await copyToClipboard(text);
         setCopied(kind);
         window.setTimeout(() => setCopied(null), 1200);
+    }
+
+    // ---- DB links (utility links)
+    const linksQ = useQuery({
+        queryKey: ["utilityLinks"],
+        queryFn: () => api.listUtilityLinks(),
+    });
+
+    const createM = useMutation({
+        mutationFn: (payload) => api.createUtilityLink(payload),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["utilityLinks"] }),
+    });
+
+    const deleteM = useMutation({
+        mutationFn: (id) => api.deleteUtilityLink(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["utilityLinks"] }),
+    });
+
+    // modal state
+    const [openModal, setOpenModal] = useState(false);
+
+    // form state
+    const [newTitle, setNewTitle] = useState("");
+    const [newHref, setNewHref] = useState("");
+    const [newSubtitle, setNewSubtitle] = useState("");
+
+    function openAdd() {
+        setOpenModal(true);
+    }
+
+    function closeAdd() {
+        setOpenModal(false);
+        createM.reset?.();
+    }
+
+    function submitNewLink(e) {
+        e.preventDefault();
+        const title = newTitle.trim();
+        const href = newHref.trim();
+        const subtitle = newSubtitle.trim();
+
+        if (!title || !href) return;
+
+        createM.mutate(
+            { title, href, subtitle: subtitle || null, sort_order: 0 },
+            {
+                onSuccess: () => {
+                    setNewTitle("");
+                    setNewHref("");
+                    setNewSubtitle("");
+                    setOpenModal(false);
+                },
+            }
+        );
     }
 
     return (
@@ -137,13 +265,34 @@ export default function Utility() {
                 <div className="p-6 bg-white/40">
                     <div className="text-sm font-extrabold tracking-wide text-neutral-600">LINK RAPIDI</div>
                     <h1 className="mt-1 text-2xl font-extrabold text-neutral-900">Utility</h1>
-                    <div className={cx("mt-2 text-xs", UI.dim2)}>Accessi esterni e credenziali (solo consultazione)</div>
+                    <div className={cx("mt-2 text-xs", UI.dim2)}>Accessi esterni e credenziali</div>
                 </div>
             </div>
 
-            {/* servizi */}
-            <Section title="Servizi essenziali" icon={PlugZap}>
+            {/* servizi essenziali + link aggiuntivi DB */}
+            <Section
+                title="Servizi essenziali"
+                icon={PlugZap}
+                subtitle=""
+                right={
+                    <button
+                        type="button"
+                        onClick={openAdd}
+                        className={cx(
+                            "inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-extrabold transition",
+                            "bg-white/55 hover:bg-white/70 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                            "focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                        )}
+                    >
+                        <Plus className="h-4 w-4" />
+                        Aggiungi link
+                    </button>
+                    
+                }
+                
+            >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* fissi */}
                     <LinkCard
                         title="Interruzioni corrente (e-Distribuzione / Enel)"
                         subtitle="Ricerca guasti e interruzioni programmate"
@@ -156,18 +305,113 @@ export default function Utility() {
                         href={QMAP}
                         icon={TrafficCone}
                     />
+
+                    {/* dal DB */}
+                    {linksQ.isLoading ? (
+                        <div className={cx("text-sm", UI.dim2)}>Caricamento link aggiuntivi…</div>
+                    ) : linksQ.error ? (
+                        <div className="text-sm text-rose-600">Errore: {String(linksQ.error.message || linksQ.error)}</div>
+                    ) : (
+                        (linksQ.data || []).map((l) => (
+                            <LinkCard
+                                key={l.id}
+                                title={l.title}
+                                subtitle={l.subtitle}
+                                href={l.href}
+                                icon={ExternalLink}
+                                right={
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            deleteM.mutate(l.id);
+                                        }}
+                                        title="Rimuovi"
+                                        className={cx(
+                                            "inline-flex items-center justify-center",
+                                            "h-9 w-9 rounded-2xl bg-white/55 ring-1 ring-white/45 shadow-sm",
+                                            "hover:bg-white/70 focus:outline-none focus:ring-4 focus:ring-rose-500/15"
+                                        )}
+                                    >
+                                        <Trash2 className="h-4 w-4 text-rose-600" />
+                                    </button>
+                                }
+                            />
+                        ))
+                    )}
                 </div>
+
+                {!linksQ.isLoading && !linksQ.error && (linksQ.data || []).length === 0 ? (
+                    <div className={cx("mt-3 text-xs", UI.dim2)}></div>
+                ) : null}
             </Section>
 
+            {/* MODALE aggiungi */}
+            <Modal open={openModal} title="Aggiungi link utile" onClose={closeAdd}>
+                <form onSubmit={submitNewLink} className="space-y-3">
+                    <div className="grid grid-cols-1 gap-3">
+                        <input
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            placeholder="Titolo (es. Meteo ARPAV)"
+                            className="rounded-2xl bg-white/70 ring-1 ring-white/45 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                            required
+                            autoFocus
+                        />
+                        <input
+                            value={newHref}
+                            onChange={(e) => setNewHref(e.target.value)}
+                            placeholder="https://..."
+                            className="rounded-2xl bg-white/70 ring-1 ring-white/45 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                            required
+                        />
+                        <input
+                            value={newSubtitle}
+                            onChange={(e) => setNewSubtitle(e.target.value)}
+                            placeholder="Sottotitolo (opzionale)"
+                            className="rounded-2xl bg-white/70 ring-1 ring-white/45 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                        />
+                    </div>
+
+                    {createM.error ? (
+                        <div className="text-sm text-rose-600">Errore: {String(createM.error.message || createM.error)}</div>
+                    ) : null}
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                        <button
+                            type="button"
+                            onClick={closeAdd}
+                            className={cx(
+                                "rounded-2xl px-3 py-2 text-sm font-extrabold transition",
+                                "bg-white/55 hover:bg-white/70 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                                "focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                            )}
+                        >
+                            Annulla
+                        </button>
+
+                        <button
+                            type="submit"
+                            disabled={createM.isPending}
+                            className={cx(
+                                "inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-extrabold transition",
+                                "bg-white/65 hover:bg-white/80 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                                "focus:outline-none focus:ring-4 focus:ring-indigo-500/15",
+                                createM.isPending && "opacity-70 cursor-not-allowed"
+                            )}
+                        >
+                            <Plus className="h-4 w-4" />
+                            Salva
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
             {/* credenziali */}
-            <Section title="Credenziali (solo consultazione)" icon={KeyRound}>
+            <Section title="Credenziali" icon={KeyRound} subtitle="">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <FieldCard
-                        label="ID"
-                        value={USER_ID}
-                        copied={copied === "id"}
-                        onCopy={() => doCopy("id", USER_ID)}
-                    />
+                    <FieldCard label="ID" value={USER_ID} copied={copied === "id"} onCopy={() => doCopy("id", USER_ID)} />
 
                     <div className={cx("rounded-3xl overflow-hidden", "bg-white/55 ring-1 ring-white/45 shadow-sm")}>
                         <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500" />

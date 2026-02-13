@@ -1,17 +1,62 @@
 // src/pages/AnaInventory.jsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Swal from "sweetalert2";
 import { api } from "../lib/api.js";
 
 import Modal from "../components/Modal.jsx";
 import { anaAssetsForPlace, anaPlaces } from "../data/ana_assets_2026.js";
 
-import { Boxes, Search, Plus, StickyNote, List, X, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+    Boxes,
+    Search,
+    Plus,
+    StickyNote,
+    List,
+    X,
+    Trash2,
+    ChevronLeft,
+    ChevronRight,
+} from "lucide-react";
+
+/* ---------------- SweetAlert helpers ---------------- */
+function toastOk(title = "Salvato") {
+    return Swal.fire({
+        icon: "success",
+        title,
+        toast: true,
+        position: "top-end",
+        timer: 1600,
+        showConfirmButton: false,
+    });
+}
+function toastErr(err, title = "Errore") {
+    const msg =
+        err?.data?.error ||
+        err?.message ||
+        (typeof err === "string" ? err : "") ||
+        "Errore sconosciuto";
+    return Swal.fire({ icon: "error", title, text: msg, confirmButtonText: "Ok" });
+}
+async function confirmDanger(text = "Sei sicuro?") {
+    const res = await Swal.fire({
+        icon: "warning",
+        title: "Conferma",
+        text,
+        showCancelButton: true,
+        confirmButtonText: "Sì, elimina",
+        cancelButtonText: "Annulla",
+        confirmButtonColor: "#e11d48",
+    });
+    return res.isConfirmed;
+}
 
 /* ------------------ helpers ------------------ */
 function todayISO() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+    ).padStart(2, "0")}`;
 }
 function cx(...xs) {
     return xs.filter(Boolean).join(" ");
@@ -25,10 +70,26 @@ function splitContactLines(text) {
         .map((x) => x.trim())
         .filter(Boolean);
 }
+function fmtTs(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return String(ts);
+    return d.toLocaleString([], {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
 
-/* ------------------ UI tokens (allineati al resto) ------------------ */
+/* ------------------ UI tokens ------------------ */
 const UI = {
-    card: cx("rounded-3xl overflow-hidden", "bg-white/55 backdrop-blur-md", "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"),
+    card: cx(
+        "rounded-3xl overflow-hidden",
+        "bg-white/55 backdrop-blur-md",
+        "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"
+    ),
     softRing: "ring-1 ring-white/45",
     accent: "h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500",
     dim: "text-neutral-600",
@@ -44,7 +105,7 @@ function Input({ className, ...props }) {
     return <input {...props} className={cx(UI.input, className)} />;
 }
 
-function MiniBtn({ onClick, title, children, disabled, tone = "neutral" }) {
+function MiniBtn({ onClick, title, children, disabled, tone = "neutral", type = "button" }) {
     const tones = {
         neutral: "bg-white/55 hover:bg-white/70 text-neutral-900 ring-white/45",
         indigo: "bg-indigo-500/12 hover:bg-indigo-500/16 text-indigo-950 ring-indigo-500/18",
@@ -56,7 +117,7 @@ function MiniBtn({ onClick, title, children, disabled, tone = "neutral" }) {
 
     return (
         <button
-            type="button"
+            type={type}
             disabled={disabled}
             onClick={onClick}
             title={title}
@@ -79,7 +140,11 @@ function Chip({ children, tone = "neutral" }) {
         amber: "bg-amber-500/14 text-amber-950 ring-1 ring-amber-500/18",
         sky: "bg-sky-500/10 text-sky-900 ring-1 ring-sky-500/15",
     };
-    return <span className={cx("text-[11px] rounded-full px-2.5 py-1 font-extrabold tracking-wide", tones[tone] || tones.neutral)}>{children}</span>;
+    return (
+        <span className={cx("text-[11px] rounded-full px-2.5 py-1 font-extrabold tracking-wide", tones[tone] || tones.neutral)}>
+            {children}
+        </span>
+    );
 }
 
 function Tag({ tone = "neutral", children }) {
@@ -177,22 +242,14 @@ export default function AnaInventory() {
         queryKey: ["dashboardDay", day],
         queryFn: () => api.dashboardDay(day),
     });
-
     const data = dash.data;
 
     const [anaPlace, setAnaPlace] = useState(() => anaPlaces()[0] || "San Vito di Cadore");
     const anaPack = useMemo(() => anaAssetsForPlace(anaPlace), [anaPlace]);
+
     const [anaSearch, setAnaSearch] = useState("");
 
-    const [anaAddModal, setAnaAddModal] = useState({
-        open: false,
-        place: "",
-        section_id: null,
-        section_title: "",
-        item_text: "",
-        scope: "global",
-    });
-
+    // details modal (solo view)
     const [detailsModal, setDetailsModal] = useState({
         open: false,
         title: "",
@@ -200,15 +257,35 @@ export default function AnaInventory() {
         contentText: "",
     });
 
-    // paginazione sezioni (4x4 = 16)
-    const PER_PAGE = 16;
-    const [page, setPage] = useState(1);
+    // add item modal
+    const [anaAddModalOpen, setAnaAddModalOpen] = useState(false);
+    const [addScope, setAddScope] = useState("global"); // global|day
+    const [addMode, setAddMode] = useState("existing"); // existing|new
+    const [addTargetSection, setAddTargetSection] = useState("");
+    const [addNewSectionTitle, setAddNewSectionTitle] = useState("");
+    const [addItemText, setAddItemText] = useState("");
 
-    const addAnaItem = useMutation({
-        mutationFn: (payload) => api.addAnaItem(payload),
-        onSuccess: async () => qc.invalidateQueries({ queryKey: ["dashboardDay", day] }),
+    // notes modal
+    const [notesModal, setNotesModal] = useState({
+        open: false,
+        title: "",
+        place: "",
+        section_id: null,
+        section_title: "",
     });
+    const [newNoteBody, setNewNoteBody] = useState("");
+    const [noteScope, setNoteScope] = useState("global"); // global|day
 
+    // edit modal (modifica voci DB)
+    const [editModal, setEditModal] = useState({
+        open: false,
+        title: "",
+        place: "",
+        section_title: "",
+    });
+    const [editRows, setEditRows] = useState([]); // [{id,item_text,section_title}]
+
+    // DB items dal dashboard (giorno+global)
     const anaDbItems = useMemo(() => data?.anaItems || [], [data?.anaItems]);
 
     const anaMergedSections = useMemo(() => {
@@ -222,7 +299,8 @@ export default function AnaInventory() {
 
         for (const it of filtered) {
             const target =
-                (it.section_id && byId.get(String(it.section_id))) || (it.section_title && byTitle.get(String(it.section_title).trim().toLowerCase()));
+                (it.section_id && byId.get(String(it.section_id))) ||
+                (it.section_title && byTitle.get(String(it.section_title).trim().toLowerCase()));
 
             if (target) target.items.push(it.item_text);
             else {
@@ -248,16 +326,136 @@ export default function AnaInventory() {
             .filter(Boolean);
     }, [anaPack, anaDbItems, anaSearch]);
 
-    // reset pagina quando cambiano filtri/place/giorno
-    React.useEffect(() => {
-        setPage(1);
-    }, [anaPlace, anaSearch, day]);
-
+    // reset page when filters change
+    const PER_PAGE = 16;
+    const [page, setPage] = useState(1);
+    useEffect(() => setPage(1), [anaPlace, anaSearch, day]);
     const paged = useMemo(() => paginate(anaMergedSections, page, PER_PAGE), [anaMergedSections, page]);
+
+    // NOTES query
+    const notesQuery = useQuery({
+        queryKey: ["anaNotes", day, notesModal.place, notesModal.section_id, notesModal.section_title],
+        queryFn: async () => {
+            if (!notesModal.open) return { rows: [] };
+
+            const p = notesModal.place;
+            const sid = notesModal.section_id;
+            const st = notesModal.section_title;
+
+            const [globalRes, dayRes] = await Promise.all([
+                api.listAnaNotes({ day: null, place: p, section_id: sid, section_title: st }),
+                api.listAnaNotes({ day, place: p, section_id: sid, section_title: st }),
+            ]);
+
+            const rows = [...(dayRes?.rows || []), ...(globalRes?.rows || [])].sort(
+                (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+            );
+
+            return { rows };
+        },
+        enabled: Boolean(notesModal.open),
+    });
+
+    // MUTATIONS
+    const addAnaItem = useMutation({
+        mutationFn: (payload) => api.addAnaItem(payload),
+        onSuccess: async () => {
+            toastOk("Voce salvata");
+            await qc.invalidateQueries({ queryKey: ["dashboardDay", day] });
+            setAnaAddModalOpen(false);
+            setAddItemText("");
+        },
+        onError: (e) => toastErr(e, "Errore salvataggio voce"),
+    });
+
+    const patchAnaItem = useMutation({
+        mutationFn: ({ id, patch }) => api.patchAnaItem(id, patch),
+        onSuccess: async () => {
+            toastOk("Voce aggiornata");
+            await qc.invalidateQueries({ queryKey: ["dashboardDay", day] });
+        },
+        onError: (e) => toastErr(e, "Errore aggiornamento voce"),
+    });
+
+    const deleteAnaItem = useMutation({
+        mutationFn: (id) => api.deleteAnaItem(id),
+        onSuccess: async () => {
+            toastOk("Voce eliminata");
+            await qc.invalidateQueries({ queryKey: ["dashboardDay", day] });
+        },
+        onError: (e) => toastErr(e, "Errore eliminazione voce"),
+    });
+
+    const createAnaNote = useMutation({
+        mutationFn: (payload) => api.createAnaNote(payload),
+        onSuccess: async () => {
+            toastOk("Nota salvata");
+            setNewNoteBody("");
+            await qc.invalidateQueries({ queryKey: ["dashboardDay", day] });
+            await qc.invalidateQueries({
+                queryKey: ["anaNotes", day, notesModal.place, notesModal.section_id, notesModal.section_title],
+            });
+        },
+        onError: (e) => toastErr(e, "Errore nota"),
+    });
+
+    const deleteAnaNote = useMutation({
+        mutationFn: (id) => api.deleteAnaNote(id),
+        onSuccess: async () => {
+            toastOk("Nota eliminata");
+            await qc.invalidateQueries({ queryKey: ["dashboardDay", day] });
+            await qc.invalidateQueries({
+                queryKey: ["anaNotes", day, notesModal.place, notesModal.section_id, notesModal.section_title],
+            });
+        },
+        onError: (e) => toastErr(e, "Errore eliminazione nota"),
+    });
+
+    function openNotesForSection(s) {
+        const place = anaPack?.place || anaPlace;
+        const rawId = String(s.id);
+        const section_id = rawId.startsWith("db-") ? null : rawId;
+
+        setNotesModal({
+            open: true,
+            title: `Note — ${place} / ${s.title}`,
+            place,
+            section_id,
+            section_title: s.title,
+        });
+        setNewNoteBody("");
+        setNoteScope("global");
+    }
+
+    function openEditForSection(s) {
+        const place = anaPack?.place || anaPlace;
+        setEditModal({
+            open: true,
+            title: `Modifica voci — ${place} / ${s.title}`,
+            place,
+            section_title: s.title,
+        });
+
+        const rows = (data?.anaItems || [])
+            .filter(
+                (x) =>
+                    x.place === place &&
+                    String(x.section_title || "").trim().toLowerCase() === String(s.title).trim().toLowerCase()
+            )
+            .map((x) => ({
+                id: x.id,
+                item_text: x.item_text,
+                section_title: x.section_title || s.title,
+            }));
+
+        setEditRows(rows);
+    }
+
+    const placeLabel = anaPack?.place || anaPlace;
 
     return (
         <div className="space-y-6">
-            {/* header (stile dashboard) */}
+            {/* header */}
             <div className={cx(UI.card, UI.softRing)}>
                 <div className="p-6 bg-white/45 relative overflow-hidden">
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
@@ -292,7 +490,7 @@ export default function AnaInventory() {
                             </div>
                             <div className="min-w-0">
                                 <div className="text-lg font-extrabold text-neutral-900">Sezioni inventario</div>
-                                <div className={cx("text-xs mt-1", UI.dim2)}>Statico + aggiunte DB (giorno o global)</div>
+                               
                             </div>
                         </div>
 
@@ -320,17 +518,15 @@ export default function AnaInventory() {
 
                             <MiniBtn
                                 tone="indigo"
-                                title="Aggiungi mezzo/materiale"
-                                onClick={() =>
-                                    setAnaAddModal({
-                                        open: true,
-                                        place: anaPack?.place || anaPlace,
-                                        section_id: null,
-                                        section_title: "",
-                                        item_text: "",
-                                        scope: "global",
-                                    })
-                                }
+                                title="Aggiungi voce"
+                                onClick={() => {
+                                    setAnaAddModalOpen(true);
+                                    setAddScope("global");
+                                    setAddMode("existing");
+                                    setAddTargetSection("");
+                                    setAddNewSectionTitle("");
+                                    setAddItemText("");
+                                }}
                             >
                                 <Plus size={16} /> Aggiungi
                             </MiniBtn>
@@ -345,7 +541,6 @@ export default function AnaInventory() {
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                     <Field label="Località">
                                         <div className="text-lg font-extrabold text-neutral-900">{anaPack.place}</div>
-                                        {anaPack.title ? <div className={cx("text-sm mt-1", UI.dim)}>{anaPack.title}</div> : null}
                                     </Field>
 
                                     <Field label="Sezioni">
@@ -361,46 +556,42 @@ export default function AnaInventory() {
                                     <Pager page={paged.page} pages={paged.pages} total={paged.total} perPage={PER_PAGE} onPage={setPage} />
                                 </div>
 
-                                {/* grid 4x4 */}
+                                {/* grid */}
                                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                                     {paged.slice.map((s) => (
                                         <div key={s.id} className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
                                             <div className="h-1.5 bg-gradient-to-r from-amber-500 via-sky-500 to-indigo-500" />
                                             <div className="p-5 bg-white/40">
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <div className="font-extrabold text-neutral-900 truncate">{s.title}</div>
-                                                        <div className="mt-2 flex flex-wrap gap-2">
-                                                            <Chip tone="amber">{(s.items || []).length} voci</Chip>
-                                                        </div>
+                                                <div className="min-w-0">
+                                                    <div className="font-extrabold text-neutral-900 truncate">{s.title}</div>
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        <Chip tone="amber">{(s.items || []).length} voci</Chip>
                                                     </div>
                                                 </div>
 
                                                 <div className="mt-4 grid grid-cols-2 gap-2">
                                                     <MiniBtn
                                                         tone="emerald"
-                                                        title="Aggiungi voce"
-                                                        onClick={() =>
-                                                            setAnaAddModal({
-                                                                open: true,
-                                                                place: anaPack.place,
-                                                                section_id: String(s.id),
-                                                                section_title: s.title,
-                                                                item_text: "",
-                                                                scope: "global",
-                                                            })
-                                                        }
+                                                        title="Aggiungi voce in questa sezione"
+                                                        onClick={() => {
+                                                            setAnaAddModalOpen(true);
+                                                            setAddScope("global");
+                                                            setAddMode("existing");
+                                                            setAddTargetSection(s.title);
+                                                            setAddNewSectionTitle("");
+                                                            setAddItemText("");
+                                                        }}
                                                     >
                                                         <Plus size={16} /> Voce
                                                     </MiniBtn>
 
                                                     <MiniBtn
                                                         tone="indigo"
-                                                        title="Voci"
+                                                        title="Voci (solo visualizza)"
                                                         onClick={() =>
                                                             setDetailsModal({
                                                                 open: true,
-                                                                title: `Voci — ${anaPack.place} / ${s.title}`,
+                                                                title: `Voci — ${placeLabel} / ${s.title}`,
                                                                 contentLabel: "Voci",
                                                                 contentText: (s.items || []).length ? (s.items || []).map((x) => `• ${x}`).join("\n") : "Nessuna voce.",
                                                             })
@@ -409,27 +600,12 @@ export default function AnaInventory() {
                                                         <List size={16} /> Voci
                                                     </MiniBtn>
 
-                                                    <MiniBtn
-                                                        tone="rose"
-                                                        title="Note (placeholder)"
-                                                        onClick={() => alert("Se vuoi note ANA su DB, te lo integro come per COC.")}
-                                                    >
+                                                    <MiniBtn tone="rose" title="Note" onClick={() => openNotesForSection(s)}>
                                                         <StickyNote size={16} /> Note
                                                     </MiniBtn>
 
-                                                    <MiniBtn
-                                                        tone="neutral"
-                                                        title="Apri tutte"
-                                                        onClick={() =>
-                                                            setDetailsModal({
-                                                                open: true,
-                                                                title: `Sezione — ${anaPack.place} / ${s.title}`,
-                                                                contentLabel: "Voci",
-                                                                contentText: (s.items || []).length ? (s.items || []).map((x) => `• ${x}`).join("\n") : "Nessuna voce.",
-                                                            })
-                                                        }
-                                                    >
-                                                        <List size={16} /> Tutte
+                                                    <MiniBtn tone="neutral" title="Modifica voci DB" onClick={() => openEditForSection(s)}>
+                                                        <List size={16} /> Modifica
                                                     </MiniBtn>
                                                 </div>
                                             </div>
@@ -454,69 +630,316 @@ export default function AnaInventory() {
                 </div>
             </Modal>
 
-            {/* MODALE ADD ANA */}
-            <Modal open={anaAddModal.open} title="Aggiungi mezzo / materiale (ANA)" onClose={() => setAnaAddModal((s) => ({ ...s, open: false }))}>
+            {/* MODALE ADD ANA (scegli card/sezione) */}
+            <Modal open={anaAddModalOpen} title="Aggiungi voce (ANA)" onClose={() => setAnaAddModalOpen(false)}>
                 <form
                     className="space-y-3"
                     onSubmit={(e) => {
                         e.preventDefault();
-                        const fd = new FormData(e.currentTarget);
 
-                        const item_text = String(fd.get("item_text") || "").trim();
-                        const section_title = String(fd.get("section_title") || "").trim();
-                        const scope = String(fd.get("scope") || "global");
-                        const dayOrNull = scope === "day" ? day : null;
+                        const section_title =
+                            addMode === "new" ? addNewSectionTitle.trim() : addTargetSection.trim();
 
-                        addAnaItem.mutate(
-                            {
-                                day: dayOrNull,
-                                place: anaAddModal.place || anaPlace,
-                                section_id: anaAddModal.section_id || null,
-                                section_title: section_title || anaAddModal.section_title || null,
-                                item_text,
-                            },
-                            { onSuccess: () => setAnaAddModal((s) => ({ ...s, open: false })) }
-                        );
+                        if (!section_title) return toastErr("Seleziona o scrivi una sezione", "Errore");
+                        if (!addItemText.trim()) return;
+
+                        addAnaItem.mutate({
+                            day: addScope === "day" ? day : null,
+                            place: placeLabel,
+                            section_id: null,
+                            section_title,
+                            item_text: addItemText.trim(),
+                        });
                     }}
                 >
                     <Field label="Contesto">
                         <div className="text-sm text-neutral-900">
-                            <b>Località:</b> {anaAddModal.place || anaPlace}
-                            <div className={cx("text-xs mt-1", UI.dim2)}>Sezione: {anaAddModal.section_title || "—"}</div>
+                            <b>Località:</b> {placeLabel}
+                            <div className={cx("text-xs mt-1", UI.dim2)}>
+                                Giorno: {day} • scope: {addScope === "day" ? "giorno" : "globale"}
+                            </div>
                         </div>
                     </Field>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Field label="Scope">
                         <select
-                            name="scope"
-                            defaultValue={anaAddModal.scope || "global"}
+                            value={addScope}
+                            onChange={(e) => setAddScope(e.target.value)}
                             className={cx(
                                 "rounded-2xl px-4 py-3 text-sm outline-none",
                                 "bg-white/75 text-neutral-900 shadow-sm ring-1 ring-white/45",
-                                "focus:ring-4 focus:ring-indigo-500/15"
+                                "focus:ring-4 focus:ring-indigo-500/15 w-full"
                             )}
                         >
                             <option value="global">Globale (sempre)</option>
                             <option value="day">Solo per questo giorno</option>
                         </select>
+                    </Field>
 
-                        <input
-                            name="section_title"
-                            defaultValue={anaAddModal.section_title || ""}
-                            placeholder="Sezione (lascia così oppure scrivi nuova)"
+                    <Field label="Dove inserire la voce">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <select
+                                value={addMode}
+                                onChange={(e) => setAddMode(e.target.value)}
+                                className={cx(
+                                    "rounded-2xl px-4 py-3 text-sm outline-none",
+                                    "bg-white/75 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                                    "focus:ring-4 focus:ring-indigo-500/15 w-full"
+                                )}
+                            >
+                                <option value="existing">Sezione esistente</option>
+                                <option value="new">Nuova sezione</option>
+                            </select>
+
+                            {addMode === "existing" ? (
+                                <select
+                                    value={addTargetSection}
+                                    onChange={(e) => setAddTargetSection(e.target.value)}
+                                    className={cx(
+                                        "rounded-2xl px-4 py-3 text-sm outline-none",
+                                        "bg-white/75 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                                        "focus:ring-4 focus:ring-indigo-500/15 w-full"
+                                    )}
+                                >
+                                    <option value="">— scegli sezione —</option>
+                                    {anaMergedSections.map((s) => (
+                                        <option key={s.id} value={s.title}>
+                                            {s.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    value={addNewSectionTitle}
+                                    onChange={(e) => setAddNewSectionTitle(e.target.value)}
+                                    placeholder="Nome nuova sezione"
+                                    className={cx(UI.input, "w-full")}
+                                />
+                            )}
+                        </div>
+                    </Field>
+
+                    <Field label="Nuova voce">
+                        <textarea
+                            value={addItemText}
+                            onChange={(e) => setAddItemText(e.target.value)}
+                            rows={4}
                             className={cx(UI.input, "w-full")}
+                            placeholder="Scrivi mezzo/materiale (una voce)"
+                            required
                         />
-                    </div>
-
-                    <textarea name="item_text" required rows={4} placeholder="Scrivi mezzo/materiale (una voce)" className={cx(UI.input, "w-full")} />
+                    </Field>
 
                     <div className="flex items-center justify-end gap-2">
-                        <MiniBtn tone="neutral" title="Annulla" onClick={() => setAnaAddModal((s) => ({ ...s, open: false }))}>
+                        <MiniBtn tone="neutral" title="Annulla" onClick={() => setAnaAddModalOpen(false)}>
                             Annulla
                         </MiniBtn>
-                        <button className="rounded-2xl px-4 py-2 text-sm font-extrabold bg-neutral-900 text-white hover:bg-neutral-800">Salva</button>
+                        <button className="rounded-2xl px-4 py-2 text-sm font-extrabold bg-neutral-900 text-white hover:bg-neutral-800">
+                            Salva
+                        </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* MODALE MODIFICA VOCI DB */}
+            <Modal
+                open={editModal.open}
+                title={editModal.title}
+                onClose={() => {
+                    setEditModal({ open: false, title: "", place: "", section_title: "" });
+                    setEditRows([]);
+                }}
+            >
+                <div className="space-y-3">
+                    {editRows.length ? (
+                        editRows.map((r, idx) => (
+                            <div key={r.id} className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4 space-y-2">
+                                <div className="text-[11px] font-extrabold text-neutral-500">
+                                    ID #{r.id} • {fmtTs((anaDbItems.find((x) => x.id === r.id) || {}).created_at)}
+                                </div>
+
+                                <Field label="Voce">
+                                    <input
+                                        value={r.item_text}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setEditRows((xs) => xs.map((x, i) => (i === idx ? { ...x, item_text: v } : x)));
+                                        }}
+                                        className={cx(UI.input, "w-full")}
+                                    />
+                                </Field>
+
+                                <Field label="Sposta in sezione">
+                                    <select
+                                        value={r.section_title || ""}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setEditRows((xs) => xs.map((x, i) => (i === idx ? { ...x, section_title: v } : x)));
+                                        }}
+                                        className={cx(
+                                            "rounded-2xl px-4 py-3 text-sm outline-none",
+                                            "bg-white/75 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                                            "focus:ring-4 focus:ring-indigo-500/15 w-full"
+                                        )}
+                                    >
+                                        {anaMergedSections.map((s) => (
+                                            <option key={s.id} value={s.title}>
+                                                {s.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>
+
+                                <div className="flex justify-end gap-2">
+                                    <MiniBtn
+                                        tone="neutral"
+                                        title="Salva"
+                                        onClick={() =>
+                                            patchAnaItem.mutate({
+                                                id: r.id,
+                                                patch: {
+                                                    item_text: r.item_text,
+                                                    section_title: r.section_title,
+                                                    place: editModal.place,
+                                                },
+                                            })
+                                        }
+                                    >
+                                        Salva
+                                    </MiniBtn>
+
+                                    <MiniBtn
+                                        tone="rose"
+                                        title="Elimina"
+                                        onClick={async () => {
+                                            const ok = await confirmDanger("Eliminare questa voce?");
+                                            if (!ok) return;
+                                            await deleteAnaItem.mutateAsync(r.id);
+                                            setEditRows((xs) => xs.filter((x) => x.id !== r.id));
+                                        }}
+                                    >
+                                        <Trash2 size={16} /> Elimina
+                                    </MiniBtn>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-sm text-neutral-500">
+                            Nessuna voce DB in questa sezione (le voci statiche non sono modificabili).
+                        </div>
+                    )}
+
+                    <div className="flex justify-end">
+                        <MiniBtn
+                            tone="neutral"
+                            title="Chiudi"
+                            onClick={() => {
+                                setEditModal({ open: false, title: "", place: "", section_title: "" });
+                                setEditRows([]);
+                            }}
+                        >
+                            <X size={16} /> Chiudi
+                        </MiniBtn>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* MODALE NOTE ANA */}
+            <Modal
+                open={notesModal.open}
+                title={notesModal.title}
+                onClose={() => setNotesModal({ open: false, title: "", place: "", section_id: null, section_title: "" })}
+            >
+                <div className="space-y-3">
+                    {notesQuery.isLoading ? (
+                        <div className="text-sm text-neutral-500">Carico note…</div>
+                    ) : notesQuery.error ? (
+                        <div className="text-sm text-rose-700">{notesQuery.error.message}</div>
+                    ) : (
+                        <div className="space-y-2">
+                            {(notesQuery.data?.rows || []).length ? (
+                                (notesQuery.data?.rows || []).map((n) => (
+                                    <div key={n.id} className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4">
+                                        <div className="text-[11px] font-extrabold text-neutral-700">
+                                            {fmtTs(n.created_at)} • {n.day ? "giorno" : "globale"}
+                                        </div>
+                                        <div className="mt-2 text-sm text-neutral-900 whitespace-pre-wrap">{n.body}</div>
+                                        <div className="mt-3 flex justify-end">
+                                            <MiniBtn
+                                                tone="rose"
+                                                title="Elimina nota"
+                                                onClick={async () => {
+                                                    const ok = await confirmDanger("Eliminare questa nota?");
+                                                    if (!ok) return;
+                                                    deleteAnaNote.mutate(n.id);
+                                                }}
+                                            >
+                                                <Trash2 size={16} /> Elimina
+                                            </MiniBtn>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-sm text-neutral-500">Nessuna nota.</div>
+                            )}
+                        </div>
+                    )}
+
+                    <Field label="Nuova nota">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <select
+                                value={noteScope}
+                                onChange={(e) => setNoteScope(e.target.value)}
+                                className={cx(
+                                    "rounded-2xl px-4 py-3 text-sm outline-none",
+                                    "bg-white/75 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                                    "focus:ring-4 focus:ring-indigo-500/15"
+                                )}
+                            >
+                                <option value="global">Globale (sempre)</option>
+                                <option value="day">Solo per questo giorno</option>
+                            </select>
+                            <div className="text-xs text-neutral-500 flex items-center">
+                                {noteScope === "day" ? `Salvata per il giorno ${day}` : "Salvata globale (sempre)"}
+                            </div>
+                        </div>
+
+                        <textarea
+                            value={newNoteBody}
+                            onChange={(e) => setNewNoteBody(e.target.value)}
+                            rows={4}
+                            className={cx(UI.input, "w-full mt-2")}
+                            placeholder="Scrivi nota…"
+                        />
+
+                        <div className="mt-3 flex justify-end gap-2">
+                            <MiniBtn
+                                tone="neutral"
+                                title="Chiudi"
+                                onClick={() => setNotesModal({ open: false, title: "", place: "", section_id: null, section_title: "" })}
+                            >
+                                <X size={16} /> Chiudi
+                            </MiniBtn>
+
+                            <MiniBtn
+                                tone="indigo"
+                                title="Pubblica"
+                                disabled={!newNoteBody.trim() || createAnaNote.isPending}
+                                onClick={() =>
+                                    createAnaNote.mutate({
+                                        day: noteScope === "day" ? day : null,
+                                        place: notesModal.place,
+                                        section_id: notesModal.section_id || null,
+                                        section_title: notesModal.section_title || null,
+                                        body: newNoteBody.trim(),
+                                    })
+                                }
+                            >
+                                <StickyNote size={16} /> {createAnaNote.isPending ? "Salvo…" : "Pubblica"}
+                            </MiniBtn>
+                        </div>
+                    </Field>
+                </div>
             </Modal>
         </div>
     );
