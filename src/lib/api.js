@@ -3,7 +3,9 @@ const API = import.meta.env.VITE_API_URL;
 
 if (!API) {
     // eslint-disable-next-line no-console
-    console.error("❌ VITE_API_URL mancante. Metti in .env: VITE_API_URL=http://localhost:8080 e riavvia Vite.");
+    console.error(
+        "❌ VITE_API_URL mancante. Metti in .env: VITE_API_URL=http://localhost:8080 e riavvia Vite."
+    );
 }
 
 let token = localStorage.getItem("token") || null;
@@ -18,6 +20,21 @@ export function setToken(t) {
 
 export function getToken() {
     return token || localStorage.getItem("token") || null;
+}
+
+/**
+ * Rimuove chiavi con null/undefined e (opzionale) stringhe vuote.
+ * Utile per evitare che il backend Zod si incazzi con "day: null" ecc.
+ */
+function cleanPayload(obj, { dropEmptyString = false } = {}) {
+    if (!obj || typeof obj !== "object") return obj;
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (v === null || v === undefined) continue;
+        if (dropEmptyString && typeof v === "string" && v.trim() === "") continue;
+        out[k] = v;
+    }
+    return out;
 }
 
 async function request(path, opts = {}) {
@@ -67,8 +84,10 @@ export const api = {
     // =========================
     login: (email, password) =>
         request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+
     me: () => request("/me"),
-    logout: () => request("/auth/logout", { method: "POST" }),
+
+    logout: () => request("/auth/logout", { method: "POST" }), // ✅ UNA SOLA VOLTA
 
     // public access request
     requestAccess: (payload) =>
@@ -78,10 +97,13 @@ export const api = {
     // ADMIN
     // =========================
     adminUsers: () => request("/admin/users"),
+
     adminCreateUser: (payload) =>
         request("/admin/users", { method: "POST", body: JSON.stringify(payload) }),
+
     adminSetRole: (id, role) =>
         request(`/admin/users/${id}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
+
     adminSetActive: (id, is_active) =>
         request(`/admin/users/${id}/active`, { method: "PATCH", body: JSON.stringify({ is_active }) }),
 
@@ -89,13 +111,42 @@ export const api = {
         request(`/admin/access-requests?status=${encodeURIComponent(status)}`),
 
     adminApproveAccessRequest: (id, payload) =>
-        request(`/admin/access-requests/${id}/approve`, { method: "POST", body: JSON.stringify(payload) }),
-    adminRejectAccessRequest: (id, payload) =>
-        request(`/admin/access-requests/${id}/reject`, { method: "POST", body: JSON.stringify(payload) }),
-    adminRevokeAccessRequest: (id, payload) =>
-        request(`/admin/access-requests/${id}/revoke`, { method: "POST", body: JSON.stringify(payload) }),
+        request(`/admin/access-requests/${id}/approve`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
 
-    // audit
+    adminRejectAccessRequest: (id, payload) =>
+        request(`/admin/access-requests/${id}/reject`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
+
+    adminRevokeAccessRequest: (id, payload) =>
+        request(`/admin/access-requests/${id}/revoke`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
+
+    // =========================
+    // LOGS
+    // =========================
+    activityLogs: ({ day, section, limit = 100 } = {}) => {
+        const qs = new URLSearchParams();
+        if (day) qs.set("day", day);
+        if (section) qs.set("section", section);
+        qs.set("limit", String(limit));
+        return request(`/activity-logs?${qs.toString()}`);
+    },
+
+    // extra logs (admin)
+    adminActivityLogs: (limit = 200) =>
+        request(`/admin/activity-logs?limit=${encodeURIComponent(limit)}`),
+
+    adminDbAudit: (limit = 200) =>
+        request(`/admin/db-audit?limit=${encodeURIComponent(limit)}`),
+
+    // audit (legacy se la usi ancora)
     adminAudit: ({ limit = 200, actor_id, section, action } = {}) => {
         const qs = new URLSearchParams();
         qs.set("limit", String(limit));
@@ -104,12 +155,6 @@ export const api = {
         if (action) qs.set("action", action);
         return request(`/admin/audit?${qs.toString()}`);
     },
-
-    // extra logs
-    adminActivityLogs: (limit = 200) =>
-        request(`/admin/activity-logs?limit=${encodeURIComponent(limit)}`),
-    adminDbAudit: (limit = 200) =>
-        request(`/admin/db-audit?limit=${encodeURIComponent(limit)}`),
 
     // =========================
     // DASHBOARD
@@ -122,10 +167,11 @@ export const api = {
     // =========================
     createNoteEntry: (payload) =>
         request("/note-entries", { method: "POST", body: JSON.stringify(payload) }),
+
     updateNoteEntry: (id, patch) =>
         request(`/note-entries/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-    deleteNoteEntry: (id) =>
-        request(`/note-entries/${id}`, { method: "DELETE" }),
+
+    deleteNoteEntry: (id) => request(`/note-entries/${id}`, { method: "DELETE" }),
 
     // legacy
     upsertAppointmentNotes: (payload) =>
@@ -136,36 +182,40 @@ export const api = {
     // =========================
     createRace: (payload) =>
         request("/races", { method: "POST", body: JSON.stringify(payload) }),
+
     updateRace: (id, patch) =>
         request(`/races/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-    deleteRace: (id) =>
-        request(`/races/${id}`, { method: "DELETE" }),
+
+    deleteRace: (id) => request(`/races/${id}`, { method: "DELETE" }),
 
     // =========================
     // APPOINTMENTS
     // =========================
     createAppointment: (payload) =>
         request("/appointments", { method: "POST", body: JSON.stringify(payload) }),
+
     updateAppointment: (id, patch) =>
         request(`/appointments/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-    deleteAppointment: (id) =>
-        request(`/appointments/${id}`, { method: "DELETE" }),
+
+    deleteAppointment: (id) => request(`/appointments/${id}`, { method: "DELETE" }),
 
     // =========================
     // EVENTS
     // =========================
     createEvent: (payload) =>
         request("/events", { method: "POST", body: JSON.stringify(payload) }),
+
     updateEvent: (id, patch) =>
         request(`/events/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-    deleteEvent: (id) =>
-        request(`/events/${id}`, { method: "DELETE" }),
+
+    deleteEvent: (id) => request(`/events/${id}`, { method: "DELETE" }),
 
     // =========================
     // COC
     // =========================
     upsertCocCommune: (payload) =>
         request("/coc-communes/upsert", { method: "POST", body: JSON.stringify(payload) }),
+
     upsertCocStatus: (payload) =>
         request("/coc-status/upsert", { method: "POST", body: JSON.stringify(payload) }),
 
@@ -176,13 +226,17 @@ export const api = {
         const fd = new FormData();
         fd.append("file", file);
         return request(
-            `/coc-ordinances/upload?day=${encodeURIComponent(day)}&commune_name=${encodeURIComponent(commune_name)}`,
+            `/coc-ordinances/upload?day=${encodeURIComponent(day)}&commune_name=${encodeURIComponent(
+                commune_name
+            )}`,
             { method: "POST", body: fd }
         );
     },
 
     downloadCocOrdinance: async ({ day, commune_name }) => {
-        const url = `${API}/coc-ordinances/download?day=${encodeURIComponent(day)}&commune_name=${encodeURIComponent(commune_name)}`;
+        const url = `${API}/coc-ordinances/download?day=${encodeURIComponent(
+            day
+        )}&commune_name=${encodeURIComponent(commune_name)}`;
         const headers = {};
         const liveToken = getToken();
         if (liveToken) headers.Authorization = `Bearer ${liveToken}`;
@@ -200,12 +254,14 @@ export const api = {
     },
 
     listCocNotes: (day, commune_name) =>
-        request(`/coc-notes?day=${encodeURIComponent(day)}&commune_name=${encodeURIComponent(commune_name)}`),
+        request(
+            `/coc-notes?day=${encodeURIComponent(day)}&commune_name=${encodeURIComponent(commune_name)}`
+        ),
 
     createCocNote: (payload) =>
         request("/coc-notes", { method: "POST", body: JSON.stringify(payload) }),
-    deleteCocNote: (id) =>
-        request(`/coc-notes/${id}`, { method: "DELETE" }),
+
+    deleteCocNote: (id) => request(`/coc-notes/${id}`, { method: "DELETE" }),
 
     // =========================
     // SAFETY BELLUNO (DB)
@@ -215,34 +271,45 @@ export const api = {
 
     createSafetyContact: (payload) =>
         request("/safety-belluno/contacts", { method: "POST", body: JSON.stringify(payload) }),
+
     updateSafetyContact: (id, patch) =>
         request(`/safety-belluno/contacts/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-    deleteSafetyContact: (id) =>
-        request(`/safety-belluno/contacts/${id}`, { method: "DELETE" }),
+
+    deleteSafetyContact: (id) => request(`/safety-belluno/contacts/${id}`, { method: "DELETE" }),
 
     listSafetyContactNotes: (contactId) =>
         request(`/safety-belluno/contacts/${contactId}/notes`),
+
     addSafetyContactNote: (contactId, body) =>
         request(`/safety-belluno/contacts/${contactId}/notes`, {
             method: "POST",
             body: JSON.stringify({ body }),
         }),
-    deleteSafetyNote: (noteId) =>
-        request(`/safety-belluno/notes/${noteId}`, { method: "DELETE" }),
+
+    deleteSafetyNote: (noteId) => request(`/safety-belluno/notes/${noteId}`, { method: "DELETE" }),
 
     // =========================
     // ANA
     // =========================
     addAnaItem: (payload) =>
-        request("/ana/items", { method: "POST", body: JSON.stringify(payload) }),
-    patchAnaItem: (id, patch) =>
-        request(`/ana/items/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-    deleteAnaItem: (id) =>
-        request(`/ana/items/${id}`, { method: "DELETE" }),
+        request("/ana/items", {
+            method: "POST",
+            body: JSON.stringify(
+                cleanPayload(payload, { dropEmptyString: true }) // ✅ niente day:null / "" ecc
+            ),
+        }),
 
-    listAnaNotes: ({ day, place, section_id, section_title }) => {
+    patchAnaItem: (id, patch) =>
+        request(`/ana/items/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(cleanPayload(patch, { dropEmptyString: true })),
+        }),
+
+    deleteAnaItem: (id) => request(`/ana/items/${id}`, { method: "DELETE" }),
+
+    listAnaNotes: ({ day, place, section_id, section_title } = {}) => {
         const qs = new URLSearchParams();
-        if (day !== undefined) qs.set("day", day);
+        if (day != null && day !== "") qs.set("day", day); // ✅ non manda "null"
         if (place) qs.set("place", place);
         if (section_id) qs.set("section_id", section_id);
         if (section_title) qs.set("section_title", section_title);
@@ -250,12 +317,18 @@ export const api = {
     },
 
     createAnaNote: (payload) =>
-        request("/ana/notes", { method: "POST", body: JSON.stringify(payload) }),
-    deleteAnaNote: (id) =>
-        request(`/ana/notes/${id}`, { method: "DELETE" }),
+        request("/ana/notes", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
+
+    deleteAnaNote: (id) => request(`/ana/notes/${id}`, { method: "DELETE" }),
 
     renameAnaSection: (payload) =>
-        request("/ana/sections/rename", { method: "POST", body: JSON.stringify(payload) }),
+        request("/ana/sections/rename", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
 
     // =========================
     // PC (DB)
@@ -264,26 +337,48 @@ export const api = {
         request(`/pc/month?kind=${encodeURIComponent(kind)}&month=${encodeURIComponent(month)}`),
 
     setPcDayUi: (payload) =>
-        request("/pc/day-ui", { method: "POST", body: JSON.stringify(payload) }),
+        request("/pc/day-ui", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
 
     movePc: (payload) =>
-        request("/pc/move", { method: "POST", body: JSON.stringify(payload) }),
+        request("/pc/move", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
+
+    // crea/aggiorna uno slot (nome+telefono)
+    pcAssign: (payload) =>
+        request("/pc/assign", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
+
 
     // =========================
     // UTILITY LINKS (DB)
     // =========================
     listUtilityLinks: () => request("/utility-links"),
+
     createUtilityLink: (payload) =>
-        request("/utility-links", { method: "POST", body: JSON.stringify(payload) }),
-    deleteUtilityLink: (id) =>
-        request(`/utility-links/${id}`, { method: "DELETE" }),
+        request("/utility-links", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
+
+    deleteUtilityLink: (id) => request(`/utility-links/${id}`, { method: "DELETE" }),
 
     // =========================
     // MAP BLIPS (DB)
     // =========================
     listMapBlips: () => request("/map-blips"),
+
     createMapBlip: (payload) =>
-        request("/map-blips", { method: "POST", body: JSON.stringify(payload) }),
-    deleteMapBlip: (id) =>
-        request(`/map-blips/${id}`, { method: "DELETE" }),
+        request("/map-blips", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
+
+    deleteMapBlip: (id) => request(`/map-blips/${id}`, { method: "DELETE" }),
 };

@@ -276,14 +276,14 @@ export default function AnaInventory() {
     const [newNoteBody, setNewNoteBody] = useState("");
     const [noteScope, setNoteScope] = useState("global"); // global|day
 
-    // edit modal (modifica voci DB)
+    // ✅ edit modal (modifica voci DB)
     const [editModal, setEditModal] = useState({
         open: false,
         title: "",
         place: "",
         section_title: "",
     });
-    const [editRows, setEditRows] = useState([]); // [{id,item_text,section_title}]
+    const [editRows, setEditRows] = useState([]);
 
     // DB items dal dashboard (giorno+global)
     const anaDbItems = useMemo(() => data?.anaItems || [], [data?.anaItems]);
@@ -312,13 +312,13 @@ export default function AnaInventory() {
             }
         }
 
-        const q = anaSearch.trim().toLowerCase();
-        if (!q) return base;
+        const qv = anaSearch.trim().toLowerCase();
+        if (!qv) return base;
 
         return base
             .map((s) => {
-                const hitTitle = String(s.title || "").toLowerCase().includes(q);
-                const items = (s.items || []).filter((x) => String(x).toLowerCase().includes(q));
+                const hitTitle = String(s.title || "").toLowerCase().includes(qv);
+                const items = (s.items || []).filter((x) => String(x).toLowerCase().includes(qv));
                 if (hitTitle) return s;
                 if (items.length) return { ...s, items };
                 return null;
@@ -326,13 +326,12 @@ export default function AnaInventory() {
             .filter(Boolean);
     }, [anaPack, anaDbItems, anaSearch]);
 
-    // reset page when filters change
     const PER_PAGE = 16;
     const [page, setPage] = useState(1);
     useEffect(() => setPage(1), [anaPlace, anaSearch, day]);
     const paged = useMemo(() => paginate(anaMergedSections, page, PER_PAGE), [anaMergedSections, page]);
 
-    // NOTES query
+    // ✅ NOTES query: NON inviare day=null -> usa undefined
     const notesQuery = useQuery({
         queryKey: ["anaNotes", day, notesModal.place, notesModal.section_id, notesModal.section_title],
         queryFn: async () => {
@@ -343,7 +342,7 @@ export default function AnaInventory() {
             const st = notesModal.section_title;
 
             const [globalRes, dayRes] = await Promise.all([
-                api.listAnaNotes({ day: null, place: p, section_id: sid, section_title: st }),
+                api.listAnaNotes({ day: undefined, place: p, section_id: sid, section_title: st }),
                 api.listAnaNotes({ day, place: p, section_id: sid, section_title: st }),
             ]);
 
@@ -427,8 +426,10 @@ export default function AnaInventory() {
         setNoteScope("global");
     }
 
+    // ✅ apre modale edit e carica righe DB per quella sezione
     function openEditForSection(s) {
         const place = anaPack?.place || anaPlace;
+
         setEditModal({
             open: true,
             title: `Modifica voci — ${place} / ${s.title}`,
@@ -448,6 +449,40 @@ export default function AnaInventory() {
                 section_title: x.section_title || s.title,
             }));
 
+        setEditRows(rows);
+    }
+
+    // ✅ helpers edit modal
+    function setEditRow(id, patch) {
+        setEditRows((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    }
+
+    async function saveAllEditedRows() {
+        for (const r of editRows) {
+            const txt = String(r.item_text || "").trim();
+            const st = String(r.section_title || "").trim();
+            if (!txt) continue;
+            await patchAnaItem.mutateAsync({
+                id: r.id,
+                patch: { item_text: txt, section_title: st || null },
+            });
+        }
+        toastOk("Tutte le voci salvate");
+    }
+
+    function refreshEditRowsFromDashboard() {
+        const rows = (data?.anaItems || [])
+            .filter(
+                (x) =>
+                    x.place === editModal.place &&
+                    String(x.section_title || "").trim().toLowerCase() ===
+                    String(editModal.section_title || "").trim().toLowerCase()
+            )
+            .map((x) => ({
+                id: x.id,
+                item_text: x.item_text,
+                section_title: x.section_title || editModal.section_title,
+            }));
         setEditRows(rows);
     }
 
@@ -490,7 +525,6 @@ export default function AnaInventory() {
                             </div>
                             <div className="min-w-0">
                                 <div className="text-lg font-extrabold text-neutral-900">Sezioni inventario</div>
-                               
                             </div>
                         </div>
 
@@ -513,7 +547,12 @@ export default function AnaInventory() {
 
                             <div className="relative">
                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
-                                <Input value={anaSearch} onChange={(e) => setAnaSearch(e.target.value)} placeholder="Cerca…" className="pl-10 w-[240px]" />
+                                <Input
+                                    value={anaSearch}
+                                    onChange={(e) => setAnaSearch(e.target.value)}
+                                    placeholder="Cerca…"
+                                    className="pl-10 w-[240px]"
+                                />
                             </div>
 
                             <MiniBtn
@@ -604,6 +643,7 @@ export default function AnaInventory() {
                                                         <StickyNote size={16} /> Note
                                                     </MiniBtn>
 
+                                                    {/* ✅ QUESTO ORA FUNZIONA: apre davvero la modale */}
                                                     <MiniBtn tone="neutral" title="Modifica voci DB" onClick={() => openEditForSection(s)}>
                                                         <List size={16} /> Modifica
                                                     </MiniBtn>
@@ -619,7 +659,11 @@ export default function AnaInventory() {
             </div>
 
             {/* MODALE DETTAGLI */}
-            <Modal open={detailsModal.open} title={detailsModal.title} onClose={() => setDetailsModal({ open: false, title: "", contentLabel: "", contentText: "" })}>
+            <Modal
+                open={detailsModal.open}
+                title={detailsModal.title}
+                onClose={() => setDetailsModal({ open: false, title: "", contentLabel: "", contentText: "" })}
+            >
                 <div className="space-y-3">
                     <DetailsBody label={detailsModal.contentLabel} text={detailsModal.contentText} />
                     <div className="flex justify-end">
@@ -630,23 +674,22 @@ export default function AnaInventory() {
                 </div>
             </Modal>
 
-            {/* MODALE ADD ANA (scegli card/sezione) */}
+            {/* MODALE ADD ANA */}
             <Modal open={anaAddModalOpen} title="Aggiungi voce (ANA)" onClose={() => setAnaAddModalOpen(false)}>
                 <form
                     className="space-y-3"
                     onSubmit={(e) => {
                         e.preventDefault();
 
-                        const section_title =
-                            addMode === "new" ? addNewSectionTitle.trim() : addTargetSection.trim();
+                        const section_title = addMode === "new" ? addNewSectionTitle.trim() : addTargetSection.trim();
 
                         if (!section_title) return toastErr("Seleziona o scrivi una sezione", "Errore");
                         if (!addItemText.trim()) return;
 
                         addAnaItem.mutate({
-                            day: addScope === "day" ? day : null,
+                            day: addScope === "day" ? day : undefined,
                             place: placeLabel,
-                            section_id: null,
+                            section_id: undefined,
                             section_title,
                             item_text: addItemText.trim(),
                         });
@@ -741,109 +784,6 @@ export default function AnaInventory() {
                 </form>
             </Modal>
 
-            {/* MODALE MODIFICA VOCI DB */}
-            <Modal
-                open={editModal.open}
-                title={editModal.title}
-                onClose={() => {
-                    setEditModal({ open: false, title: "", place: "", section_title: "" });
-                    setEditRows([]);
-                }}
-            >
-                <div className="space-y-3">
-                    {editRows.length ? (
-                        editRows.map((r, idx) => (
-                            <div key={r.id} className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4 space-y-2">
-                                <div className="text-[11px] font-extrabold text-neutral-500">
-                                    ID #{r.id} • {fmtTs((anaDbItems.find((x) => x.id === r.id) || {}).created_at)}
-                                </div>
-
-                                <Field label="Voce">
-                                    <input
-                                        value={r.item_text}
-                                        onChange={(e) => {
-                                            const v = e.target.value;
-                                            setEditRows((xs) => xs.map((x, i) => (i === idx ? { ...x, item_text: v } : x)));
-                                        }}
-                                        className={cx(UI.input, "w-full")}
-                                    />
-                                </Field>
-
-                                <Field label="Sposta in sezione">
-                                    <select
-                                        value={r.section_title || ""}
-                                        onChange={(e) => {
-                                            const v = e.target.value;
-                                            setEditRows((xs) => xs.map((x, i) => (i === idx ? { ...x, section_title: v } : x)));
-                                        }}
-                                        className={cx(
-                                            "rounded-2xl px-4 py-3 text-sm outline-none",
-                                            "bg-white/75 text-neutral-900 shadow-sm ring-1 ring-white/45",
-                                            "focus:ring-4 focus:ring-indigo-500/15 w-full"
-                                        )}
-                                    >
-                                        {anaMergedSections.map((s) => (
-                                            <option key={s.id} value={s.title}>
-                                                {s.title}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </Field>
-
-                                <div className="flex justify-end gap-2">
-                                    <MiniBtn
-                                        tone="neutral"
-                                        title="Salva"
-                                        onClick={() =>
-                                            patchAnaItem.mutate({
-                                                id: r.id,
-                                                patch: {
-                                                    item_text: r.item_text,
-                                                    section_title: r.section_title,
-                                                    place: editModal.place,
-                                                },
-                                            })
-                                        }
-                                    >
-                                        Salva
-                                    </MiniBtn>
-
-                                    <MiniBtn
-                                        tone="rose"
-                                        title="Elimina"
-                                        onClick={async () => {
-                                            const ok = await confirmDanger("Eliminare questa voce?");
-                                            if (!ok) return;
-                                            await deleteAnaItem.mutateAsync(r.id);
-                                            setEditRows((xs) => xs.filter((x) => x.id !== r.id));
-                                        }}
-                                    >
-                                        <Trash2 size={16} /> Elimina
-                                    </MiniBtn>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-sm text-neutral-500">
-                            Nessuna voce DB in questa sezione (le voci statiche non sono modificabili).
-                        </div>
-                    )}
-
-                    <div className="flex justify-end">
-                        <MiniBtn
-                            tone="neutral"
-                            title="Chiudi"
-                            onClick={() => {
-                                setEditModal({ open: false, title: "", place: "", section_title: "" });
-                                setEditRows([]);
-                            }}
-                        >
-                            <X size={16} /> Chiudi
-                        </MiniBtn>
-                    </div>
-                </div>
-            </Modal>
-
             {/* MODALE NOTE ANA */}
             <Modal
                 open={notesModal.open}
@@ -927,10 +867,10 @@ export default function AnaInventory() {
                                 disabled={!newNoteBody.trim() || createAnaNote.isPending}
                                 onClick={() =>
                                     createAnaNote.mutate({
-                                        day: noteScope === "day" ? day : null,
+                                        day: noteScope === "day" ? day : undefined,
                                         place: notesModal.place,
-                                        section_id: notesModal.section_id || null,
-                                        section_title: notesModal.section_title || null,
+                                        section_id: notesModal.section_id || undefined,
+                                        section_title: notesModal.section_title || undefined,
                                         body: newNoteBody.trim(),
                                     })
                                 }
@@ -939,6 +879,133 @@ export default function AnaInventory() {
                             </MiniBtn>
                         </div>
                     </Field>
+                </div>
+            </Modal>
+
+            {/* ✅ MODALE EDIT VOCI DB (questa mancava / non era collegata) */}
+            <Modal
+                open={editModal.open}
+                title={editModal.title}
+                onClose={() => {
+                    setEditModal({ open: false, title: "", place: "", section_title: "" });
+                    setEditRows([]);
+                }}
+            >
+                <div className="space-y-3">
+                    {!editRows.length ? (
+                        <div className="text-sm text-neutral-500">Nessuna voce DB trovata per questa sezione.</div>
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="text-xs text-neutral-600 font-extrabold">
+                                    Voci DB: <span className="text-neutral-900">{editRows.length}</span>
+                                </div>
+
+                                <MiniBtn
+                                    tone="neutral"
+                                    title="Ricarica"
+                                    onClick={() => refreshEditRowsFromDashboard()}
+                                    disabled={dash.isLoading}
+                                >
+                                    Ricarica
+                                </MiniBtn>
+                            </div>
+
+                            <div className="space-y-2">
+                                {editRows.map((r) => (
+                                    <div key={r.id} className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="text-[11px] font-extrabold text-neutral-700">
+                                                id: <span className="font-mono">{r.id}</span>
+                                            </div>
+
+                                            <MiniBtn
+                                                tone="rose"
+                                                title="Elimina voce"
+                                                onClick={async () => {
+                                                    const ok = await confirmDanger("Eliminare questa voce?");
+                                                    if (!ok) return;
+                                                    deleteAnaItem.mutate(r.id, {
+                                                        onSuccess: () => setEditRows((rows) => rows.filter((x) => x.id !== r.id)),
+                                                    });
+                                                }}
+                                            >
+                                                <Trash2 size={16} /> Elimina
+                                            </MiniBtn>
+                                        </div>
+
+                                        {/* ✅ spostamento sezione */}
+                                        <div className="mt-3">
+                                            <div className="text-[11px] font-extrabold text-neutral-600 mb-1">Sezione (section_title)</div>
+                                            <input
+                                                value={r.section_title || ""}
+                                                onChange={(e) => setEditRow(r.id, { section_title: e.target.value })}
+                                                className={cx(UI.input, "w-full")}
+                                                placeholder="Nome sezione"
+                                            />
+                                            <div className="text-[10px] text-neutral-500 mt-1">
+                                                Cambia questo campo per spostare la voce in un’altra sezione.
+                                            </div>
+                                        </div>
+
+                                        {/* ✅ testo voce */}
+                                        <div className="mt-3">
+                                            <div className="text-[11px] font-extrabold text-neutral-600 mb-1">Testo voce (item_text)</div>
+                                            <textarea
+                                                value={r.item_text || ""}
+                                                onChange={(e) => setEditRow(r.id, { item_text: e.target.value })}
+                                                rows={3}
+                                                className={cx(UI.input, "w-full")}
+                                            />
+                                        </div>
+
+                                        <div className="mt-3 flex justify-end gap-2">
+                                            <MiniBtn
+                                                tone="indigo"
+                                                title="Salva voce"
+                                                disabled={patchAnaItem.isPending || !String(r.item_text || "").trim()}
+                                                onClick={() => {
+                                                    const item_text = String(r.item_text || "").trim();
+                                                    const section_title = String(r.section_title || "").trim();
+                                                    patchAnaItem.mutate({
+                                                        id: r.id,
+                                                        patch: {
+                                                            item_text,
+                                                            section_title: section_title || null,
+                                                        },
+                                                    });
+                                                }}
+                                            >
+                                                Salva
+                                            </MiniBtn>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                                <MiniBtn
+                                    tone="neutral"
+                                    title="Chiudi"
+                                    onClick={() => {
+                                        setEditModal({ open: false, title: "", place: "", section_title: "" });
+                                        setEditRows([]);
+                                    }}
+                                >
+                                    <X size={16} /> Chiudi
+                                </MiniBtn>
+
+                                <MiniBtn
+                                    tone="indigo"
+                                    title="Salva tutte"
+                                    disabled={!editRows.length || patchAnaItem.isPending}
+                                    onClick={saveAllEditedRows}
+                                >
+                                    Salva tutte
+                                </MiniBtn>
+                            </div>
+                        </>
+                    )}
                 </div>
             </Modal>
         </div>

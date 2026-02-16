@@ -4,7 +4,6 @@ import { q } from "../db.js";
 import { requireRole } from "../auth/middleware.js";
 
 export async function dashboardRoutes(app) {
-    // GET /days/:day/dashboard
     app.get(
         "/days/:day/dashboard",
         { preHandler: requireRole(["admin", "editor", "viewer"]) },
@@ -15,6 +14,106 @@ export async function dashboardRoutes(app) {
                     .parse(req.params);
 
                 const day = params.day;
+
+                // =========================
+                // RACES (DB)
+                // =========================
+                const races = await q(
+                    `
+          select
+            r.id,
+            r.day,
+            r.name,
+            r.sport,
+            r.venue,
+            r.description,
+            r.starts_at,
+            r.ends_at,
+            r.notes,
+            r.is_active,
+            r.created_at,
+            r.updated_at
+          from races r
+          where r.day = $1::date
+            and r.is_active = true
+          order by r.starts_at asc
+          `,
+                    [day]
+                );
+
+                // =========================
+                // APPOINTMENTS (DB)
+                // =========================
+                const appointments = await q(
+                    `
+          select
+            a.id,
+            a.day,
+            a.title,
+            a.location,
+            a.description,
+            a.starts_at,
+            a.ends_at,
+            a.notes,
+            a.source,
+            a.external_id,
+            a.is_ops_fixed,
+            a.is_active,
+            a.created_at,
+            a.updated_at
+          from appointments a
+          where a.day = $1::date
+            and a.is_active = true
+          order by a.starts_at asc
+          `,
+                    [day]
+                );
+
+                // =========================
+                // NOTE ENTRIES (robusto)
+                // - prova schema "nuovo": created_by_user_id / created_by_name / created_by_email
+                // - fallback schema "vecchio": senza colonne extra
+                // =========================
+                let noteEntries = [];
+                try {
+                    noteEntries = await q(
+                        `
+            select
+              ne.id,
+              ne.day,
+              ne.source,
+              ne.external_id,
+              ne.body,
+              ne.created_at,
+              ne.updated_at,
+              ne.created_by_user_id,
+              ne.created_by_name,
+              ne.created_by_email
+            from note_entries ne
+            where ne.day = $1::date
+            order by ne.created_at asc
+            `,
+                        [day]
+                    );
+                } catch (e) {
+                    // fallback: tabella senza colonne author
+                    noteEntries = await q(
+                        `
+            select
+              ne.id,
+              ne.day,
+              ne.source,
+              ne.external_id,
+              ne.body,
+              ne.created_at,
+              ne.updated_at
+            from note_entries ne
+            where ne.day = $1::date
+            order by ne.created_at asc
+            `,
+                        [day]
+                    );
+                }
 
                 // =========================
                 // COC STATUS
@@ -42,8 +141,7 @@ export async function dashboardRoutes(app) {
                 );
 
                 // =========================
-                // COC ORDINANCES  ✅ FIX: usa colonne reali
-                // tabella: id, day, commune_id, ordinance, updated_at
+                // COC ORDINANCES
                 // =========================
                 const cocOrdinances = await q(
                     `
@@ -97,16 +195,17 @@ export async function dashboardRoutes(app) {
                     [day]
                 );
 
-                // (se vuoi anche anaNotes nel dashboard, aggiungiamo pure,
-                // ma nel tuo AnaInventory già le carichi via api.listAnaNotes)
-
                 return {
+                    races,
+                    appointments,
+                    noteEntries,
                     cocStatus,
                     cocOrdinances,
                     cocContacts,
-                    anaItems, // ✅
+                    anaItems,
                 };
             } catch (e) {
+                req.log.error({ err: e }, "❌ dashboard error");
                 return reply.status(400).send({ error: e?.message || "Bad request" });
             }
         }

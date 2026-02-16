@@ -179,4 +179,45 @@ export async function pcRoutes(app) {
             }
         }
     );
+
+    // POST /pc/assign
+    // { kind, day, shift, slot, person_name, person_phone }
+    // crea o aggiorna lo slot (serve UNIQUE(kind,day,shift,slot) consigliata)
+    app.post(
+        "/pc/assign",
+        { preHandler: requireRole(["admin", "editor"]) },
+        async (req, reply) => {
+            try {
+                const B = z
+                    .object({
+                        kind: z.enum(["olympics", "paralympics"]),
+                        day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+                        shift: z.enum(["20-8", "8-20"]),
+                        slot: z.number().int().min(1).max(3),
+                        person_name: z.string().min(1),
+                        person_phone: z.string().min(1),
+                    })
+                    .parse(req.body);
+
+                const row = await q(
+                    `
+        insert into pc_assignments(kind, day, shift, slot, person_name, person_phone)
+        values ($1, $2::date, $3, $4, $5, $6)
+        on conflict (kind, day, shift, slot)
+        do update set
+          person_name = excluded.person_name,
+          person_phone = excluded.person_phone,
+          updated_at = now()
+        returning id, kind, day, shift, slot, person_name, person_phone
+        `,
+                    [B.kind, B.day, B.shift, B.slot, B.person_name, B.person_phone]
+                ).then((r) => r[0]);
+
+                return { row };
+            } catch (e) {
+                return reply.status(400).send({ error: e?.message || "Bad request" });
+            }
+        }
+    );
+
 }

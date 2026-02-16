@@ -3,6 +3,11 @@ import { z } from "zod";
 import { q } from "../db.js";
 import { requireRole } from "../auth/middleware.js";
 
+function actorId(req) {
+    // coerente con note_entries.js
+    return req.user?.sub ?? req.user?.id ?? null;
+}
+
 export async function anaRoutes(app) {
     // =========================
     // ITEMS
@@ -66,7 +71,7 @@ export async function anaRoutes(app) {
                 const row = await q(
                     `
           insert into ana_items(day, place, section_id, section_title, item_text, created_by_user_id)
-          values ($1::date, $2, $3, $4, $5, $6)
+          values ($1::date, $2, $3, $4, $5, $6::text)
           returning
             id, day, place, section_id, section_title, item_text, created_at
           `,
@@ -76,7 +81,7 @@ export async function anaRoutes(app) {
                         B.section_id ?? null,
                         B.section_title ?? null,
                         B.item_text,
-                        req.user?.id ?? null,
+                        actorId(req),
                     ]
                 ).then((r) => r[0]);
 
@@ -87,7 +92,7 @@ export async function anaRoutes(app) {
         }
     );
 
-    // ✅ PATCH /ana/items/:id  (modifica voce + spostamento sezione)
+    // PATCH /ana/items/:id
     app.patch(
         "/ana/items/:id",
         { preHandler: requireRole(["admin", "editor"]) },
@@ -131,9 +136,7 @@ export async function anaRoutes(app) {
                     vals.push(B.item_text);
                 }
 
-                if (!sets.length) {
-                    return reply.status(400).send({ error: "Nessun campo da aggiornare" });
-                }
+                if (!sets.length) return reply.status(400).send({ error: "Nessun campo da aggiornare" });
 
                 vals.push(params.id);
 
@@ -173,7 +176,7 @@ export async function anaRoutes(app) {
     // NOTES
     // =========================
 
-    // GET /ana/notes?day=...&place=...&section_id=...&section_title=...
+    // GET /ana/notes
     app.get(
         "/ana/notes",
         { preHandler: requireRole(["admin", "editor", "viewer"]) },
@@ -224,7 +227,7 @@ export async function anaRoutes(app) {
             try {
                 const B = z
                     .object({
-                        day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), // null = globale
+                        day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
                         place: z.string().min(1),
                         section_id: z.string().nullable().optional(),
                         section_title: z.string().nullable().optional(),
@@ -235,7 +238,7 @@ export async function anaRoutes(app) {
                 const row = await q(
                     `
           insert into ana_notes(day, place, section_id, section_title, body, created_by_user_id)
-          values ($1::date, $2, $3, $4, $5, $6)
+          values ($1::date, $2, $3, $4, $5, $6::text)
           returning
             id, day, place, section_id, section_title, body, created_at
           `,
@@ -245,7 +248,7 @@ export async function anaRoutes(app) {
                         B.section_id ?? null,
                         B.section_title ?? null,
                         B.body,
-                        req.user?.id ?? null,
+                        actorId(req),
                     ]
                 ).then((r) => r[0]);
 
@@ -271,9 +274,7 @@ export async function anaRoutes(app) {
         }
     );
 
-    // =========================
-    // (OPZIONALE) RENAME SEZIONE
-    // =========================
+    // RENAME SEZIONE (come tuo)
     app.post(
         "/ana/sections/rename",
         { preHandler: requireRole(["admin", "editor"]) },

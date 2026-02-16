@@ -1,19 +1,39 @@
+// server/src/routes/logs.js
 import { z } from "zod";
 import { q } from "../db.js";
 import { requireRole } from "../auth/middleware.js";
 
 export async function logsRoutes(app) {
+    // GET /activity-logs?section=...&day=YYYY-MM-DD&limit=50
     app.get("/activity-logs", async (req, reply) => {
+        await requireRole(["admin", "editor", "viewer"])(req, reply);
+        if (reply.sent) return;
+
         try {
-            requireRole(["admin", "editor", "viewer"])(req);
+            const query = z
+                .object({
+                    section: z.string().optional(),
+                    day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+                    limit: z.coerce.number().min(1).max(200).default(50),
+                })
+                .parse(req.query);
 
-            const query = z.object({
-                section: z.string().optional(),
-                day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-                limit: z.coerce.number().min(1).max(200).default(50),
-            }).parse(req.query);
-
-            let sql = `select * from activity_logs where 1=1`;
+            let sql = `
+        select
+          id,
+          occurred_at,
+          actor_id,
+          actor_email,
+          actor_role,
+          section,
+          entity_type,
+          entity_id,
+          action,
+          summary,
+          meta
+        from activity_logs
+        where 1=1
+      `;
             const params = [];
             let idx = 1;
 
@@ -21,10 +41,12 @@ export async function logsRoutes(app) {
                 sql += ` and section=$${idx++}`;
                 params.push(query.section);
             }
+
             if (query.day) {
                 sql += ` and occurred_at >= $${idx++}::date and occurred_at < ($${idx++}::date + interval '1 day')`;
                 params.push(query.day, query.day);
             }
+
             sql += ` order by occurred_at desc limit $${idx++}`;
             params.push(query.limit);
 
