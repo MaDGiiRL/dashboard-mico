@@ -27,20 +27,19 @@ import { crudRoutes } from "./routes/crud.js";
 
 const app = Fastify({ logger: true });
 
+const normalizeOrigin = (s) => String(s || "").trim().replace(/\/$/, "");
+
 await app.register(cors, {
   origin: (origin, cb) => {
-    // origin è undefined per curl/postman o richieste interne
     if (!origin) return cb(null, true);
 
-    const allowed = Array.isArray(config.corsOrigin)
-      ? config.corsOrigin
-      : String(config.corsOrigin || "").split(",").map(s => s.trim());
+    const o = normalizeOrigin(origin);
+    const allowed = (Array.isArray(config.corsOrigin) ? config.corsOrigin : [])
+      .map(normalizeOrigin);
 
-    // match esatto
-    if (allowed.includes(origin)) return cb(null, true);
+    if (allowed.includes(o)) return cb(null, true);
 
-    // (opzionale) log utile su Render
-    app.log.warn({ origin, allowed }, "CORS blocked origin");
+    app.log.warn({ origin: o, allowed }, "CORS blocked origin");
     return cb(null, false);
   },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
@@ -48,6 +47,7 @@ await app.register(cors, {
   credentials: true,
   optionsSuccessStatus: 204,
 });
+
 
 
 await app.register(multipart, {

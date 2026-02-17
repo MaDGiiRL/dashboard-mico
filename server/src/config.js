@@ -15,10 +15,20 @@ console.log("🔎 .env exists?", fs.existsSync(envPath));
 dotenv.config({ path: envPath, override: false });
 
 // ---- parsing CORS multipli (virgola separata)
-function parseCors(origin) {
-    if (!origin) return ["http://localhost:5173"];
-    return origin.split(",").map(s => s.trim());
+function normalizeOrigin(s) {
+  return String(s || "")
+    .trim()
+    .replace(/\/$/, ""); // toglie slash finale
 }
+
+function parseCors(origin) {
+  if (!origin) return ["http://localhost:5173"];
+  return origin
+    .split(",")
+    .map(normalizeOrigin)
+    .filter(Boolean);
+}
+
 
 export const config = {
     // Render imposta PORT automaticamente
