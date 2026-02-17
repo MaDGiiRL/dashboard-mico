@@ -1,5 +1,6 @@
 // src/lib/api.js
-const API = import.meta.env.VITE_API_URL;
+const API = (import.meta.env.VITE_API_URL || "").trim().replace(/\/$/, "");
+
 
 if (!API) {
     // eslint-disable-next-line no-console
