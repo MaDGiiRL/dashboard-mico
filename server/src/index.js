@@ -27,28 +27,11 @@ import { crudRoutes } from "./routes/crud.js";
 
 const app = Fastify({ logger: true });
 
-const normalizeOrigin = (s) => String(s || "").trim().replace(/\/$/, "");
-
 await app.register(cors, {
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
-
-    const o = normalizeOrigin(origin);
-    const allowed = (Array.isArray(config.corsOrigin) ? config.corsOrigin : [])
-      .map(normalizeOrigin);
-
-    if (allowed.includes(o)) return cb(null, true);
-
-    app.log.warn({ origin: o, allowed }, "CORS blocked origin");
-    return cb(null, false);
-  },
+  origin: config.corsOrigin,
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-  optionsSuccessStatus: 204,
 });
-
-
 
 await app.register(multipart, {
   limits: { fileSize: 20 * 1024 * 1024 },
