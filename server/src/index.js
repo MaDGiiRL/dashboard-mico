@@ -5,7 +5,7 @@ import { config } from "./config.js";
 
 import { authRoutes } from "./routes/auth.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
-
+import { issueReportsRouter } from "./routes/issuesReports.js";
 import { appointmentsRoutes } from "./routes/appointments.js";
 import { racesRoutes } from "./routes/races.js";
 import { eventsRoutes } from "./routes/events.js";
@@ -58,7 +58,7 @@ await accessRequestsRoutes(app);
 // ✅ admin + generic crud
 await adminRoutes(app);
 await crudRoutes(app);
-
+await issueReportsRouter(app);
 // ---- resto del tuo backend ----
 await noteEntriesRoutes(app);
 await appointmentsRoutes(app);

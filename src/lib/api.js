@@ -342,18 +342,21 @@ export const api = {
             body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
         }),
 
+    // ✅ move usa from: { id } e to: { day, shift, slot }
     movePc: (payload) =>
         request("/pc/move", {
             method: "POST",
             body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
         }),
 
-    // crea/aggiorna uno slot (nome+telefono)
+    // ✅ assign usato dal +
     pcAssign: (payload) =>
         request("/pc/assign", {
             method: "POST",
             body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
         }),
+
+
 
 
     // =========================
@@ -381,4 +384,33 @@ export const api = {
         }),
 
     deleteMapBlip: (id) => request(`/map-blips/${id}`, { method: "DELETE" }),
+
+
+
+        // =========================
+    // ISSUE REPORTS (SEGNALAZIONI)
+    // =========================
+
+    // utente loggato: crea segnalazione
+    createIssueReport: (payload) =>
+        request("/issue-reports", {
+            method: "POST",
+            body: JSON.stringify(cleanPayload(payload, { dropEmptyString: true })),
+        }),
+
+    // admin: lista segnalazioni (status=open|closed|all)
+    adminIssueReports: (status = "all", limit = 200) => {
+        const qs = new URLSearchParams();
+        qs.set("status", status);
+        qs.set("limit", String(limit));
+        return request(`/admin/issue-reports?${qs.toString()}`);
+    },
+
+    // admin: cambia stato segnalazione
+    adminSetIssueReportStatus: (id, status) =>
+        request(`/admin/issue-reports/${id}/status`, {
+            method: "POST",
+            body: JSON.stringify({ status }),
+        }),
+
 };

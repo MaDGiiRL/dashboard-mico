@@ -1,7 +1,19 @@
+// src/pages/Admin.jsx
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api.js";
 import { useMemo, useState } from "react";
-import { UserPlus, ShieldCheck, Users, Search, X, ScrollText, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+    UserPlus,
+    ShieldCheck,
+    Users,
+    Search,
+    X,
+    ScrollText,
+    RefreshCw,
+    ChevronLeft,
+    ChevronRight,
+    Bug,
+} from "lucide-react";
 
 function cx(...xs) {
     return xs.filter(Boolean).join(" ");
@@ -58,6 +70,20 @@ function Pill({ tone = "neutral", children }) {
     return (
         <span className={cx("inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold", map[tone] || map.neutral)}>
             {children}
+        </span>
+    );
+}
+
+function SeverityPill({ value }) {
+    const v = String(value || "medium").toLowerCase();
+    const map = {
+        low: "border-sky-500/30 bg-sky-500/10 text-sky-900",
+        medium: "border-amber-500/30 bg-amber-500/10 text-amber-900",
+        high: "border-rose-500/30 bg-rose-500/10 text-rose-900",
+    };
+    return (
+        <span className={cx("inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold", map[v] || map.medium)}>
+            {v}
         </span>
     );
 }
@@ -219,6 +245,31 @@ export default function Admin() {
         return rows;
     }, [reqQ.data, reqFilter, reqSearch]);
 
+    // ---- Issue reports (SEGNALAZIONI) ----
+    const [issueFilter, setIssueFilter] = useState("open"); // open | closed | all
+    const [issueSearch, setIssueSearch] = useState("");
+
+    const issuesQ = useQuery({
+        queryKey: ["admin_issue_reports", issueFilter],
+        queryFn: () => api.adminIssueReports(issueFilter),
+    });
+
+    const setIssueStatus = useMutation({
+        mutationFn: ({ id, status }) => api.adminSetIssueReportStatus(id, status),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["admin_issue_reports"] }),
+    });
+
+    const issueRows = useMemo(() => {
+        let rows = issuesQ.data?.rows || [];
+        const q = issueSearch.trim().toLowerCase();
+        if (q) {
+            rows = rows.filter((r) =>
+                `${r.title || ""} ${r.message || ""} ${r.page || ""} ${r.reporter_email || ""}`.toLowerCase().includes(q)
+            );
+        }
+        return rows;
+    }, [issuesQ.data, issueSearch]);
+
     // ---- DB AUDIT (solo) paginato 10 ----
     const PAGE_SIZE = 10;
     const [page, setPage] = useState(0); // 0-based
@@ -253,7 +304,7 @@ export default function Admin() {
                 <div className="p-6 bg-white/40">
                     <div className="text-xs font-extrabold tracking-wide text-neutral-600">GESTIONE</div>
                     <h1 className="mt-1 text-2xl font-extrabold text-neutral-900">Admin Panel</h1>
-                    <div className={cx("mt-2 text-xs", UI.dim2)}>Utenti, ruoli, richieste abilitazione + DB audit</div>
+                    <div className={cx("mt-2 text-xs", UI.dim2)}>Utenti, ruoli, richieste abilitazione + segnalazioni + DB audit</div>
                 </div>
             </div>
 
@@ -315,13 +366,21 @@ export default function Admin() {
                                     <div className="flex flex-wrap gap-2 sm:justify-end">
                                         {r.status === "pending" && (
                                             <>
-                                                <Select defaultValue="viewer" className="w-[220px]" onChange={(e) => approve.mutate({ id: r.id, role: e.target.value })}>
+                                                <Select
+                                                    defaultValue="viewer"
+                                                    className="w-[220px]"
+                                                    onChange={(e) => approve.mutate({ id: r.id, role: e.target.value })}
+                                                >
                                                     <option value="viewer">Approve as viewer</option>
                                                     <option value="editor">Approve as editor</option>
                                                     <option value="admin">Approve as admin</option>
                                                 </Select>
 
-                                                <button type="button" onClick={() => reject.mutate({ id: r.id, note: "Rifiutata da admin" })} className={UI.btnDanger}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => reject.mutate({ id: r.id, note: "Rifiutata da admin" })}
+                                                    className={UI.btnDanger}
+                                                >
                                                     <X size={16} /> Rifiuta
                                                 </button>
                                             </>
@@ -339,6 +398,90 @@ export default function Admin() {
                     ))}
 
                     {reqRows.length === 0 && <div className={cx("text-sm", UI.dim)}>Nessuna richiesta in questa vista.</div>}
+                </div>
+            </ToneCard>
+
+            {/* ===== Segnalazioni ===== */}
+            <ToneCard
+                tone="neutral"
+                icon={Bug}
+                title="Segnalazioni"
+                subtitle="Bug / feedback inviati dagli utenti dalla dashboard"
+                right={
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Select value={issueFilter} onChange={(e) => setIssueFilter(e.target.value)} className="w-[180px]">
+                            <option value="open">Open</option>
+                            <option value="closed">Closed</option>
+                            <option value="all">Tutte</option>
+                        </Select>
+
+                        <div className="relative">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                            <Input
+                                value={issueSearch}
+                                onChange={(e) => setIssueSearch(e.target.value)}
+                                placeholder="Cerca…"
+                                className="pl-9 w-[220px]"
+                            />
+                        </div>
+                    </div>
+                }
+            >
+                <ErrorBox err={issuesQ.isError ? issuesQ.error : null} />
+
+                <div className="space-y-2 text-sm">
+                    {(issueRows || []).map((r) => (
+                        <div key={r.id} className={cx("rounded-3xl overflow-hidden", "bg-white/55 ring-1 ring-white/45 shadow-sm")}>
+                            <div className="h-1.5 bg-gradient-to-r from-neutral-900/10 via-white/60 to-white/40" />
+                            <div className="p-5 bg-white/40">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <div className="font-extrabold text-neutral-900 truncate">{r.title}</div>
+                                            <SeverityPill value={r.severity} />
+                                            <Pill tone={r.status === "closed" ? "disabled" : "active"}>{r.status}</Pill>
+                                        </div>
+
+                                        <div className={cx("mt-1", UI.dim)}>
+                                            {r.reporter_email || "—"}
+                                            {r.reporter_role ? ` • ${r.reporter_role}` : ""}
+                                            {r.page ? ` • ${r.page}` : ""}
+                                        </div>
+
+                                        <div className="mt-3 whitespace-pre-wrap text-neutral-900/90">{r.message}</div>
+
+                                        <div className={cx("mt-3 text-xs", UI.dim2)}>
+                                            Inviata: {r.created_at ? new Date(r.created_at).toLocaleString() : "-"}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2 sm:justify-end">
+                                        {r.status !== "closed" ? (
+                                            <button
+                                                type="button"
+                                                className={UI.btnDark}
+                                                onClick={() => setIssueStatus.mutate({ id: r.id, status: "closed" })}
+                                            >
+                                                Chiudi
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className={UI.btnGhost}
+                                                onClick={() => setIssueStatus.mutate({ id: r.id, status: "open" })}
+                                            >
+                                                Riapri
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {(issueRows || []).length === 0 && (
+                        <div className={cx("text-sm", UI.dim)}>{issuesQ.isLoading ? "Caricamento…" : "Nessuna segnalazione in questa vista."}</div>
+                    )}
                 </div>
             </ToneCard>
 
@@ -408,7 +551,11 @@ export default function Admin() {
                                     <option value="admin">Admin</option>
                                 </Select>
 
-                                <button type="button" className={u.is_active ? UI.btnDanger : UI.btnDark} onClick={() => setActive.mutate({ id: u.id, is_active: !u.is_active })}>
+                                <button
+                                    type="button"
+                                    className={u.is_active ? UI.btnDanger : UI.btnDark}
+                                    onClick={() => setActive.mutate({ id: u.id, is_active: !u.is_active })}
+                                >
                                     {u.is_active ? "Disabilita" : "Riabilita"}
                                 </button>
                             </div>

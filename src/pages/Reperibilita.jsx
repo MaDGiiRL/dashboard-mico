@@ -5,6 +5,7 @@ import Card from "../components/Card.jsx";
 import { reperibilitaData } from "../data/reperibilitaData.js";
 import { api } from "../lib/api.js";
 import { Phone, Copy, Search, CalendarDays, Shield } from "lucide-react";
+import Swal from "sweetalert2";
 
 function cx(...a) {
   return a.filter(Boolean).join(" ");
@@ -71,7 +72,8 @@ function Input({ className, ...props }) {
 function Btn({ onClick, href, disabled, title, children, tone = "neutral" }) {
   const tones = {
     neutral: "bg-white/55 hover:bg-white/70 text-neutral-900 ring-white/45",
-    emerald: "bg-emerald-500/12 hover:bg-emerald-500/16 text-emerald-900 ring-emerald-500/15",
+    emerald:
+      "bg-emerald-500/12 hover:bg-emerald-500/16 text-emerald-900 ring-emerald-500/15",
   };
   const t = tones[tone] || tones.neutral;
 
@@ -169,61 +171,86 @@ export default function Reperibilita() {
   const [pcKind, setPcKind] = useState("olympics");
   const [q, setQ] = useState("");
 
-  // ✅ FIX: override locale per evitare "rimbalzo" del turno selezionato
+  // override locale per evitare rimbalzo turno selezionato
   const [uiOverride, setUiOverride] = useState(() => new Map());
   useEffect(() => {
-    // quando cambio calendario (olympics/paralympics) pulisco override
     setUiOverride(new Map());
   }, [pcKind]);
 
   const search = q.trim().toLowerCase();
-
   const pcQueryKey = useMemo(() => ["pcMonth", pcKind, MONTH], [pcKind]);
 
-  // PC dal DB (solo Febbraio 2026)
   const pcQuery = useQuery({
     queryKey: pcQueryKey,
     queryFn: () => api.listPcMonth({ kind: pcKind, month: MONTH }),
   });
 
-  // ✅ AGGIUNTA: mutation per riempire slot vuoti (bottone +)
+  // salva slot vuoto con "+"
   const pcAssign = useMutation({
-    mutationFn: (payload) => {
-      if (typeof api.pcAssign !== "function") {
-        throw new Error("api.pcAssign non esiste in src/lib/api.js");
-      }
-      return api.pcAssign(payload);
-    },
+    mutationFn: (payload) => api.pcAssign(payload),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: pcQueryKey });
+      Swal.fire({
+        icon: "success",
+        title: "Salvato",
+        toast: true,
+        position: "top-end",
+        timer: 1400,
+        showConfirmButton: false,
+      });
+    },
+    onError: (e) => {
+      const msg = e?.data?.error || e?.message || "Errore sconosciuto";
+      Swal.fire({ icon: "error", title: "Errore", text: msg, confirmButtonText: "Ok" });
     },
   });
 
-  // ✅ AGGIUNTA: handler per bottone "+"
   async function addToSlot(dayIso, shift, slot) {
-    const name = window.prompt("Nome reperibile:");
-    if (!name || !String(name).trim()) return;
+    const res = await Swal.fire({
+      title: "Aggiungi reperibile",
+      html: `
+        <div style="display:grid; gap:10px; text-align:left">
+          <label style="font-weight:700; font-size:12px;">Cognome e Nome</label>
+          <input id="sw-name" class="swal2-input" placeholder="Es. Rossi Mario" style="margin:0;" />
+          <label style="font-weight:700; font-size:12px;">Telefono</label>
+          <input id="sw-phone" class="swal2-input" placeholder="Es. 3331234567" style="margin:0;" />
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Salva",
+      cancelButtonText: "Annulla",
+      preConfirm: () => {
+        const name = document.getElementById("sw-name")?.value?.trim() || "";
+        const phone = document.getElementById("sw-phone")?.value?.trim() || "";
+        if (!name) {
+          Swal.showValidationMessage("Inserisci cognome e nome");
+          return;
+        }
+        if (!phone) {
+          Swal.showValidationMessage("Inserisci il telefono");
+          return;
+        }
+        return { name, phone };
+      },
+    });
 
-    const phone = window.prompt("Telefono reperibile:");
-    if (!phone || !String(phone).trim()) return;
+    if (!res.isConfirmed || !res.value) return;
 
     pcAssign.mutate({
       kind: pcKind,
       day: dayIso,
       shift,
       slot,
-      person_name: String(name).trim(),
-      person_phone: String(phone).trim(),
+      person_name: res.value.name,
+      person_phone: res.value.phone,
     });
   }
 
-  // -------- Optimistic: cambia turno del giorno subito --------
   const setDayUi = useMutation({
     mutationFn: (payload) => api.setPcDayUi(payload),
-
     onMutate: async (payload) => {
       await qc.cancelQueries({ queryKey: pcQueryKey });
-
       const prev = qc.getQueryData(pcQueryKey);
 
       qc.setQueryData(pcQueryKey, (old) => {
@@ -233,7 +260,6 @@ export default function Reperibilita() {
 
         const ui = Array.isArray(cur.ui) ? [...cur.ui] : [];
         const idx = ui.findIndex((x) => String(x.day).slice(0, 10) === day);
-
         if (idx >= 0) ui[idx] = { ...ui[idx], day, active_shift };
         else ui.push({ day, active_shift });
 
@@ -242,23 +268,18 @@ export default function Reperibilita() {
 
       return { prev };
     },
-
     onError: (_err, _payload, ctx) => {
       if (ctx?.prev) qc.setQueryData(pcQueryKey, ctx.prev);
     },
-
     onSettled: async () => {
       await qc.invalidateQueries({ queryKey: pcQueryKey });
     },
   });
 
-  // -------- Optimistic: drag&drop con SWAP --------
   const movePc = useMutation({
     mutationFn: (payload) => api.movePc(payload),
-
     onMutate: async (payload) => {
       await qc.cancelQueries({ queryKey: pcQueryKey });
-
       const prev = qc.getQueryData(pcQueryKey);
 
       qc.setQueryData(pcQueryKey, (old) => {
@@ -290,7 +311,6 @@ export default function Reperibilita() {
         if (toIdx >= 0) {
           const a = rows[fromIdx];
           const b = rows[toIdx];
-
           rows[fromIdx] = { ...b, day: a.day, shift: a.shift, slot: a.slot };
           rows[toIdx] = { ...a, day: b.day, shift: b.shift, slot: b.slot };
         } else {
@@ -303,11 +323,11 @@ export default function Reperibilita() {
 
       return { prev };
     },
-
-    onError: (_err, _payload, ctx) => {
+    onError: (err, _payload, ctx) => {
       if (ctx?.prev) qc.setQueryData(pcQueryKey, ctx.prev);
+      const msg = err?.data?.error || err?.message || "Errore sconosciuto";
+      Swal.fire({ icon: "error", title: "Errore spostamento", text: msg, confirmButtonText: "Ok" });
     },
-
     onSettled: async () => {
       await qc.invalidateQueries({ queryKey: pcQueryKey });
     },
@@ -329,12 +349,10 @@ export default function Reperibilita() {
       activeShiftByDay.set(day, u.active_shift);
     }
 
-    // ✅ override locale (priorità massima)
     for (const [d, sh] of uiOverride.entries()) {
       activeShiftByDay.set(String(d).slice(0, 10), sh);
     }
 
-    // default: se non impostato, scegli quello che esiste (priorità 20-8)
     for (const d of GRID) {
       if (!d.startsWith("2026-02-")) continue;
       if (activeShiftByDay.has(d)) continue;
@@ -360,35 +378,74 @@ export default function Reperibilita() {
     e.dataTransfer.dropEffect = "move";
   }
 
-  function onDragStart(e, payload) {
+  // ✅ DRAG ROBUSTO: salva SEMPRE i valori reali del row + doppio MIME
+  function onDragStart(e, row) {
     try {
+      if (!row) return;
+
+      const payload = {
+        kind: pcKind,
+        fromDay: String(row.day).slice(0, 10),
+        fromShift: String(row.shift),
+        fromSlot: Number(row.slot),
+      };
+
       e.dataTransfer.setData("application/json", JSON.stringify(payload));
+      e.dataTransfer.setData("text/plain", JSON.stringify(payload));
       e.dataTransfer.effectAllowed = "move";
     } catch { }
   }
 
   function onDrop(e, toDay, toShift, toSlot) {
     e.preventDefault();
+
     try {
-      const raw = e.dataTransfer.getData("application/json");
+      const raw =
+        e.dataTransfer.getData("application/json") ||
+        e.dataTransfer.getData("text/plain") ||
+        "";
+
       const payload = JSON.parse(raw || "{}");
 
-      if (
-        payload?.fromDay === toDay &&
-        payload?.fromShift === toShift &&
-        Number(payload?.fromSlot) === Number(toSlot)
-      )
+      const fromKind = String(payload?.kind || "");
+      const fromDay = String(payload?.fromDay || "");
+      const fromShift = String(payload?.fromShift || "");
+      const fromSlot = Number(payload?.fromSlot);
+
+      const toSlotNum = Number(toSlot);
+
+      if (!fromDay || !fromShift || !Number.isFinite(fromSlot)) {
+        Swal.fire({
+          icon: "error",
+          title: "Drag non valido",
+          text: "Sto ricevendo dati vuoti dal trascinamento. Trascina dal riquadro del nome.",
+          confirmButtonText: "Ok",
+        });
         return;
+      }
+
+      if (fromKind && fromKind !== pcKind) {
+        Swal.fire({
+          icon: "warning",
+          title: "Calendario diverso",
+          text: "Stai trascinando da Olimpiadi/Paralimpiadi diverso. Riprova senza cambiare calendario.",
+          confirmButtonText: "Ok",
+        });
+        return;
+      }
+
+      if (fromDay === toDay && fromShift === toShift && fromSlot === toSlotNum) return;
 
       movePc.mutate({
         kind: pcKind,
-        from: { day: payload.fromDay, shift: payload.fromShift, slot: payload.fromSlot },
-        to: { day: toDay, shift: toShift, slot: toSlot },
+        from: { day: fromDay, shift: fromShift, slot: fromSlot },
+        to: { day: toDay, shift: toShift, slot: toSlotNum },
       });
-    } catch { }
+    } catch {
+      Swal.fire({ icon: "error", title: "Errore", text: "Drop non valido", confirmButtonText: "Ok" });
+    }
   }
 
-  // tabs statiche AIB/ANA
   const aibRows = useMemo(() => {
     const base = reperibilitaData.aib || [];
     if (!search) return base;
@@ -557,7 +614,6 @@ export default function Reperibilita() {
                                       onClick={() => {
                                         if (!inFeb) return;
 
-                                        // ✅ FIX: salva subito UI locale (evita rimbalzo)
                                         setUiOverride((prev) => {
                                           const next = new Map(prev);
                                           next.set(dayIso, sh.key);
@@ -624,11 +680,7 @@ export default function Reperibilita() {
                                             draggable={Boolean(row)}
                                             onDragStart={(e) => {
                                               if (!row) return;
-                                              onDragStart(e, {
-                                                fromDay: dayIso,
-                                                fromShift: activeShift,
-                                                fromSlot: slot,
-                                              });
+                                              onDragStart(e, row); // ✅ PASSA ROW REALE
                                             }}
                                             className={cx(
                                               "mt-1 rounded-xl px-2 py-1",
@@ -647,7 +699,6 @@ export default function Reperibilita() {
                                         </div>
 
                                         <div className="flex items-center gap-1 pt-5">
-                                          {/* ✅ AGGIUNTA: se slot vuoto -> bottone + */}
                                           {!row && inFeb ? (
                                             <button
                                               type="button"
@@ -695,8 +746,7 @@ export default function Reperibilita() {
                               </div>
 
                               <div className="text-[11px] text-neutral-500 font-extrabold">
-                                turno attivo:{" "}
-                                <span className="text-neutral-900">{activeShift}</span>
+                                turno attivo: <span className="text-neutral-900">{activeShift}</span>
                               </div>
                             </div>
                           </div>
@@ -704,9 +754,7 @@ export default function Reperibilita() {
                       })}
                     </div>
 
-                    <div className="mt-4 text-xs text-neutral-500 font-extrabold">
-                      Drag&drop salva su DB • tab turno salva su DB (pc_day_ui) • Febbraio only.
-                    </div>
+                
                   </div>
                 </div>
               </div>

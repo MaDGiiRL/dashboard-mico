@@ -6,28 +6,38 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ---- carica .env locale (su Render non serve ma non dà fastidio)
 const envPath = path.resolve(__dirname, "../.env");
 
 console.log("🔎 ENV PATH:", envPath);
 console.log("🔎 .env exists?", fs.existsSync(envPath));
 
-const result = dotenv.config({ path: envPath, override: true });
+dotenv.config({ path: envPath, override: false });
 
-if (result.error) console.error("❌ dotenv error:", result.error);
-else console.log("✅ dotenv parsed keys:", Object.keys(result.parsed || {}));
+// ---- parsing CORS multipli (virgola separata)
+function parseCors(origin) {
+    if (!origin) return ["http://localhost:5173"];
+    return origin.split(",").map(s => s.trim());
+}
 
 export const config = {
-    port: Number(process.env.PORT || 8080),
+    // Render imposta PORT automaticamente
+    port: Number(process.env.PORT) || 8080,
+
     databaseUrl: String(process.env.DATABASE_URL || ""),
     jwtSecret: String(process.env.JWT_SECRET || ""),
-    corsOrigin: String(process.env.CORS_ORIGIN || "http://localhost:5173"),
+
+    // supporta:
+    // CORS_ORIGIN=https://app.vercel.app
+    // CORS_ORIGIN=https://app.vercel.app,http://localhost:5173
+    corsOrigin: parseCors(process.env.CORS_ORIGIN),
 };
 
 console.log("✅ ENV loaded:", {
     cwd: process.cwd(),
     port: config.port,
     corsOrigin: config.corsOrigin,
-    databaseUrl: config.databaseUrl,
+    databaseUrl: config.databaseUrl ? "***set***" : "***missing***",
     jwtSecret: config.jwtSecret ? "***set***" : "***missing***",
 });
 
