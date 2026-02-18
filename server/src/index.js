@@ -35,6 +35,11 @@ await app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
+app.get("/", async () => ({
+  ok: true,
+  version: "cors-fix-1",
+}));
+
 
 await app.register(multipart, {
   limits: { fileSize: 20 * 1024 * 1024 },
