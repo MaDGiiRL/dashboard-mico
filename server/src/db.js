@@ -3,23 +3,21 @@ import pg from "pg";
 import dns from "node:dns";
 import { config } from "./config.js";
 
-// ✅ forza IPv4 (evita ENETUNREACH su indirizzi IPv6 tipo 2a05:...)
-function lookup(hostname, options, callback) {
+const ipv4Lookup = (hostname, options, callback) => {
     return dns.lookup(hostname, { ...options, family: 4 }, callback);
-}
+};
 
 export const pool = new pg.Pool({
     connectionString: config.databaseUrl,
     ssl: { rejectUnauthorized: false }, // ✅ Supabase
-    lookup, // ✅ forza IPv4
+    lookup: ipv4Lookup,                 // ✅ forza IPv4
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
 });
 
-pool.on("connect", () => {
-    console.log("✅ PG pool connected");
-});
+// ✅ forza ancora (alcuni ambienti ignorano lookup in ctor)
+pool.options.lookup = ipv4Lookup;
 
 pool.on("error", (err) => {
     console.error("❌ PG pool error:", err);
@@ -51,7 +49,6 @@ export async function qAsUser(user, text, params = []) {
             await client.query("select set_config('app.user_email', $1, true)", [String(user.email || "")]);
             await client.query("select set_config('app.user_role', $1, true)", [String(user.role || "")]);
         }
-
         const res = await client.query(text, params);
         return res.rows;
     } catch (e) {

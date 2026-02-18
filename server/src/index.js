@@ -1,8 +1,11 @@
 // server/src/index.js
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first"); // ✅ forza preferenza IPv4 su Render
+
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
-import { config, allowedOrigins } from "./config.js";
+import { config } from "./config.js";
 
 import { authRoutes } from "./routes/auth.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
@@ -29,47 +32,36 @@ import { crudRoutes } from "./routes/crud.js";
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
-  origin: true, // riflette l'Origin della request
+  origin: true,
   credentials: true,
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
-app.get("/", async () => ({
-  ok: true,
-  version: "cors-fix-1",
-}));
-
+// utile per capire al volo che deploy stai usando
+app.get("/", async () => ({ ok: true, version: "cors-fix-1-ipv4first" }));
+app.get("/health", async () => ({ ok: true }));
 
 await app.register(multipart, {
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
-// 🔥 error handler globale
+// error handler globale
 app.setErrorHandler((err, req, reply) => {
-  req.log.error(
-    { err, url: req.url, method: req.method, user: req.user || null },
-    "🔥 Unhandled error"
-  );
+  req.log.error({ err, url: req.url, method: req.method, user: req.user || null }, "Unhandled error");
   if (reply.sent) return;
   reply.code(err.statusCode || 500).send({ error: err.message || "Internal Server Error" });
 });
 
-app.get("/health", async () => ({ ok: true }));
-
 await authRoutes(app);
 await dashboardRoutes(app);
 
-// ✅ public access request
 await accessRequestsRoutes(app);
-
-// ✅ admin + generic crud
 await adminRoutes(app);
 await crudRoutes(app);
 
 await issueReportsRouter(app);
 
-// ---- resto del backend ----
 await noteEntriesRoutes(app);
 await appointmentsRoutes(app);
 await racesRoutes(app);
