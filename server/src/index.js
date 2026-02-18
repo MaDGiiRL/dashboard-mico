@@ -1,7 +1,8 @@
+// server/src/index.js
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
-import { config } from "./config.js";
+import { config, allowedOrigins } from "./config.js";
 
 import { authRoutes } from "./routes/auth.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
@@ -27,10 +28,19 @@ import { crudRoutes } from "./routes/crud.js";
 
 const app = Fastify({ logger: true });
 
+// ✅ CORS robusto: supporta più origin
 await app.register(cors, {
-  origin: config.corsOrigin,
+  origin: (origin, cb) => {
+    // richieste senza Origin (curl, server-to-server)
+    if (!origin) return cb(null, true);
+
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+
+    cb(new Error(`CORS blocked: ${origin}`), false);
+  },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 });
 
 await app.register(multipart, {
@@ -58,8 +68,10 @@ await accessRequestsRoutes(app);
 // ✅ admin + generic crud
 await adminRoutes(app);
 await crudRoutes(app);
+
 await issueReportsRouter(app);
-// ---- resto del tuo backend ----
+
+// ---- resto del backend ----
 await noteEntriesRoutes(app);
 await appointmentsRoutes(app);
 await racesRoutes(app);

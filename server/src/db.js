@@ -1,8 +1,11 @@
+// server/src/db.js
 import pg from "pg";
 import { config } from "./config.js";
 
 export const pool = new pg.Pool({
     connectionString: config.databaseUrl,
+    // Supabase richiede SSL: questo evita errori cert/catene
+    ssl: { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,

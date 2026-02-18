@@ -1,13 +1,10 @@
-// src/lib/api.js
+// client/src/lib/api.js
 const API = import.meta.env.VITE_API_URL;
 
-fetch(`${API}/weather_bulletins`)
-
 if (!API) {
-    // eslint-disable-next-line no-console
-    console.error(
-        "❌ VITE_API_URL mancante. Metti in .env: VITE_API_URL=http://localhost:8080 e riavvia Vite."
-    );
+  console.error(
+    "❌ VITE_API_URL mancante. Metti in .env: VITE_API_URL=http://localhost:8080 e riavvia Vite."
+  );
 }
 
 let token = localStorage.getItem("token") || null;
