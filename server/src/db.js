@@ -1,14 +1,24 @@
 // server/src/db.js
 import pg from "pg";
+import dns from "node:dns";
 import { config } from "./config.js";
+
+// ✅ forza IPv4 (evita ENETUNREACH su indirizzi IPv6 tipo 2a05:...)
+function lookup(hostname, options, callback) {
+    return dns.lookup(hostname, { ...options, family: 4 }, callback);
+}
 
 export const pool = new pg.Pool({
     connectionString: config.databaseUrl,
-    // Supabase richiede SSL: questo evita errori cert/catene
-    ssl: { rejectUnauthorized: false },
+    ssl: { rejectUnauthorized: false }, // ✅ Supabase
+    lookup, // ✅ forza IPv4
     max: 10,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
+    connectionTimeoutMillis: 10_000,
+});
+
+pool.on("connect", () => {
+    console.log("✅ PG pool connected");
 });
 
 pool.on("error", (err) => {
@@ -25,7 +35,7 @@ export async function q(text, params = []) {
             ms: Date.now() - t0,
             code: e?.code,
             message: e?.message,
-            sql: String(text).slice(0, 4000),
+            sql: String(text).slice(0, 2000),
             params,
         });
         throw e;
@@ -49,7 +59,7 @@ export async function qAsUser(user, text, params = []) {
             ms: Date.now() - t0,
             code: e?.code,
             message: e?.message,
-            sql: String(text).slice(0, 4000),
+            sql: String(text).slice(0, 2000),
             params,
             actor: user?.id || null,
         });
