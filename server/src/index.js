@@ -28,20 +28,13 @@ import { crudRoutes } from "./routes/crud.js";
 
 const app = Fastify({ logger: true });
 
-// ✅ CORS robusto: supporta più origin
 await app.register(cors, {
-  origin: (origin, cb) => {
-    // richieste senza Origin (curl, server-to-server)
-    if (!origin) return cb(null, true);
-
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-
-    cb(new Error(`CORS blocked: ${origin}`), false);
-  },
+  origin: true, // riflette l'Origin della request
+  credentials: true,
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
 });
+
 
 await app.register(multipart, {
   limits: { fileSize: 20 * 1024 * 1024 },
