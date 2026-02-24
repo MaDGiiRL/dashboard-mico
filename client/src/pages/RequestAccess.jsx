@@ -1,5 +1,5 @@
 // src/pages/RequestAccess.jsx
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
 
@@ -51,9 +51,48 @@ function Alert({ tone = "ok", children }) {
 }
 
 export default function RequestAccess() {
+    const formRef = useRef(null);
+
     const [ok, setOk] = useState(false);
     const [err, setErr] = useState(null);
     const [pending, setPending] = useState(false);
+
+    async function onSubmit(e) {
+        e.preventDefault();
+
+        // prendo il form subito (non dipendo da e.currentTarget dopo gli await)
+        const form = e.currentTarget;
+
+        setErr(null);
+        setOk(false);
+        setPending(true);
+
+        const fd = new FormData(form);
+        const payload = {
+            name: String(fd.get("name") || "").trim(),
+            email: String(fd.get("email") || "").trim(),
+            ente: String(fd.get("ente") || "").trim(),
+            note: String(fd.get("note") || "").trim(),
+        };
+
+        if (!payload.name || !payload.email) {
+            setErr("Nome ed email sono obbligatori.");
+            setPending(false);
+            return;
+        }
+
+        try {
+            await api.requestAccess(payload);
+            setOk(true);
+
+            // reset safe (niente errore anche se form non c'è più)
+            formRef.current?.reset?.();
+        } catch (e2) {
+            setErr(e2?.message || "Errore invio richiesta");
+        } finally {
+            setPending(false);
+        }
+    }
 
     return (
         <div className={UI.shell}>
@@ -78,46 +117,14 @@ export default function RequestAccess() {
                     </div>
 
                     <div className={UI.help}>
-                        La creazione utenti non è pubblica: <span className="font-semibold">solo la developer</span> può registrare nuovi
-                        utenti. Compila il form per richiedere l’abilitazione.
+                        La creazione utenti non è pubblica: <span className="font-semibold">solo la developer</span> può registrare nuovi utenti.
+                        Compila il form per richiedere l’abilitazione.
                     </div>
 
                     {ok ? <Alert tone="ok">Richiesta inviata. Verrai contattato dall’amministrazione.</Alert> : null}
                     {err ? <Alert tone="err">{err}</Alert> : null}
 
-                    <form
-                        className="space-y-3"
-                        onSubmit={async (e) => {
-                            e.preventDefault();
-                            setErr(null);
-                            setOk(false);
-                            setPending(true);
-
-                            const fd = new FormData(e.currentTarget);
-                            const payload = {
-                                name: String(fd.get("name") || "").trim(),
-                                email: String(fd.get("email") || "").trim(),
-                                ente: String(fd.get("ente") || "").trim(),
-                                note: String(fd.get("note") || "").trim(),
-                            };
-
-                            if (!payload.name || !payload.email) {
-                                setErr("Nome ed email sono obbligatori.");
-                                setPending(false);
-                                return;
-                            }
-
-                            try {
-                                await api.requestAccess(payload);
-                                setOk(true);
-                                e.currentTarget.reset();
-                            } catch (e2) {
-                                setErr(e2?.message || "Errore invio richiesta");
-                            } finally {
-                                setPending(false);
-                            }
-                        }}
-                    >
+                    <form ref={formRef} className="space-y-3" onSubmit={onSubmit}>
                         <input name="name" placeholder="Nome e cognome *" required className={UI.input} />
                         <input name="email" type="email" placeholder="Email istituzionale *" required className={UI.input} />
                         <input name="ente" placeholder="Ente / Struttura (opzionale)" className={UI.input} />
