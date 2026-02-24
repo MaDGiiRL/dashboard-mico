@@ -120,12 +120,12 @@ export default function RequestAccess() {
                     >
                         <input name="name" placeholder="Nome e cognome *" required className={UI.input} />
                         <input name="email" type="email" placeholder="Email istituzionale *" required className={UI.input} />
-                        <input name="ente" placeholder="Ente / Struttura (opzionale)" className={UI.input} />
+                        <input name="ente" placeholder="Ente / Struttura" className={UI.input} />
 
                         <textarea
                             name="note"
                             rows={4}
-                            placeholder="Motivazione / ruolo / note (opzionale)"
+                            placeholder="Motivazione / ruolo / note"
                             className={cx(UI.input, "resize-none")}
                         />
 
