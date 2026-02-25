@@ -9,8 +9,10 @@ function cx(...xs) {
 
 /* stesso “linguaggio” premium delle altre pagine (no dark mode) */
 const UI = {
-    shell: "min-h-screen flex items-center justify-center p-4 text-neutral-900 relative overflow-hidden",
-    bg1: "absolute inset-0 -z-10 bg-gradient-to-b from-white/75 via-white/60 to-white/90",
+    shell:
+        "min-h-screen flex items-center justify-center p-4 text-neutral-900 relative overflow-hidden",
+    bg1:
+        "absolute inset-0 -z-10 bg-gradient-to-b from-white/75 via-white/60 to-white/90",
     bg2:
         "absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_20%_0%,rgba(99,102,241,0.22),transparent_60%),radial-gradient(50%_50%_at_90%_10%,rgba(236,72,153,0.16),transparent_55%),radial-gradient(50%_50%_at_10%_90%,rgba(34,197,94,0.14),transparent_55%)]",
     blur: "absolute inset-0 -z-10 backdrop-blur-[2px]",
@@ -18,7 +20,8 @@ const UI = {
     card:
         "w-full max-w-lg rounded-3xl overflow-hidden bg-white/55 backdrop-blur-md " +
         "shadow-[0_18px_50px_rgba(0,0,0,0.10)] ring-1 ring-white/45",
-    accent: "h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500",
+    accent:
+        "h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500",
 
     label: "text-sm text-neutral-600",
     title: "text-2xl font-extrabold text-neutral-900",
@@ -47,7 +50,11 @@ function Alert({ tone = "ok", children }) {
         ok: "bg-emerald-500/10 text-emerald-900 ring-1 ring-emerald-500/15",
         err: "bg-rose-500/10 text-rose-900 ring-1 ring-rose-500/15",
     };
-    return <div className={cx("rounded-2xl px-4 py-3 text-sm", tones[tone] || tones.ok)}>{children}</div>;
+    return (
+        <div className={cx("rounded-2xl px-4 py-3 text-sm", tones[tone] || tones.ok)}>
+            {children}
+        </div>
+    );
 }
 
 export default function RequestAccess() {
@@ -78,11 +85,16 @@ export default function RequestAccess() {
                     </div>
 
                     <div className={UI.help}>
-                        La creazione utenti non è pubblica: <span className="font-semibold">solo la developer</span> può registrare nuovi
-                        utenti. Compila il form per richiedere l’abilitazione.
+                        La creazione utenti non è pubblica:{" "}
+                        <span className="font-semibold">solo la developer</span> può registrare
+                        nuovi utenti. Compila il form per richiedere l’abilitazione.
                     </div>
 
-                    {ok ? <Alert tone="ok">Richiesta inviata. Verrai contattato dall’amministrazione.</Alert> : null}
+                    {ok ? (
+                        <Alert tone="ok">
+                            Richiesta inviata. Verrai contattato dall’amministrazione.
+                        </Alert>
+                    ) : null}
                     {err ? <Alert tone="err">{err}</Alert> : null}
 
                     <form
@@ -98,11 +110,25 @@ export default function RequestAccess() {
                                 name: String(fd.get("name") || "").trim(),
                                 email: String(fd.get("email") || "").trim(),
                                 ente: String(fd.get("ente") || "").trim(),
-                                note: String(fd.get("note") || "").trim(),
+                                password: String(fd.get("password") || ""),
                             };
+
+                            const password2 = String(fd.get("password2") || "");
 
                             if (!payload.name || !payload.email) {
                                 setErr("Nome ed email sono obbligatori.");
+                                setPending(false);
+                                return;
+                            }
+
+                            if (!payload.password || payload.password.length < 8) {
+                                setErr("La password deve essere lunga almeno 8 caratteri.");
+                                setPending(false);
+                                return;
+                            }
+
+                            if (payload.password !== password2) {
+                                setErr("Le password non coincidono.");
                                 setPending(false);
                                 return;
                             }
@@ -118,15 +144,39 @@ export default function RequestAccess() {
                             }
                         }}
                     >
-                        <input name="name" placeholder="Nome e cognome *" required className={UI.input} />
-                        <input name="email" type="email" placeholder="Email istituzionale *" required className={UI.input} />
+                        <input
+                            name="name"
+                            placeholder="Nome e cognome *"
+                            required
+                            className={UI.input}
+                        />
+                        <input
+                            name="email"
+                            type="email"
+                            placeholder="Email istituzionale *"
+                            required
+                            className={UI.input}
+                        />
                         <input name="ente" placeholder="Ente / Struttura" className={UI.input} />
 
-                        <textarea
-                            name="note"
-                            rows={4}
-                            placeholder="Motivazione / ruolo / note"
-                            className={cx(UI.input, "resize-none")}
+                        <input
+                            name="password"
+                            type="password"
+                            placeholder="Scegli una password (min 8) *"
+                            required
+                            className={UI.input}
+                            minLength={8}
+                            autoComplete="new-password"
+                        />
+
+                        <input
+                            name="password2"
+                            type="password"
+                            placeholder="Conferma password *"
+                            required
+                            className={UI.input}
+                            minLength={8}
+                            autoComplete="new-password"
                         />
 
                         <button disabled={pending} className={UI.btn}>
@@ -134,7 +184,8 @@ export default function RequestAccess() {
                         </button>
 
                         <div className={UI.tiny}>
-                            Le richieste saranno valutate dall’amministrazione. Se hai già una richiesta pendente, non inviare duplicati.
+                            Le richieste saranno valutate dall’amministrazione. Se hai già una
+                            richiesta pendente, non inviare duplicati.
                         </div>
                     </form>
                 </div>
