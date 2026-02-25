@@ -1,6 +1,7 @@
 // src/pages/RequestAccess.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
 import { api } from "../lib/api.js";
 
 function cx(...xs) {
@@ -58,7 +59,6 @@ function Alert({ tone = "ok", children }) {
 }
 
 export default function RequestAccess() {
-    const [ok, setOk] = useState(false);
     const [err, setErr] = useState(null);
     const [pending, setPending] = useState(false);
 
@@ -84,17 +84,6 @@ export default function RequestAccess() {
                         </Link>
                     </div>
 
-                    <div className={UI.help}>
-                        La creazione utenti non è pubblica:{" "}
-                        <span className="font-semibold">solo la developer</span> può registrare
-                        nuovi utenti. Compila il form per richiedere l’abilitazione.
-                    </div>
-
-                    {ok ? (
-                        <Alert tone="ok">
-                            Richiesta inviata. Verrai contattato dall’amministrazione.
-                        </Alert>
-                    ) : null}
                     {err ? <Alert tone="err">{err}</Alert> : null}
 
                     <form
@@ -102,10 +91,12 @@ export default function RequestAccess() {
                         onSubmit={async (e) => {
                             e.preventDefault();
                             setErr(null);
-                            setOk(false);
                             setPending(true);
 
-                            const fd = new FormData(e.currentTarget);
+                            // ✅ salva SUBITO il riferimento al form (evita currentTarget null dopo await)
+                            const formEl = e.currentTarget;
+
+                            const fd = new FormData(formEl);
                             const payload = {
                                 name: String(fd.get("name") || "").trim(),
                                 email: String(fd.get("email") || "").trim(),
@@ -135,28 +126,27 @@ export default function RequestAccess() {
 
                             try {
                                 await api.requestAccess(payload);
-                                setOk(true);
-                                e.currentTarget.reset();
+
+                                // ✅ reset sicuro
+                                formEl.reset();
+
+                                // ✅ sweet alert
+                                await Swal.fire({
+                                    icon: "success",
+                                    title: "Grazie!",
+                                    text: "La tua richiesta verrà approvata entro 24 ore.",
+                                    confirmButtonText: "Ok",
+                                });
                             } catch (e2) {
+                                // ✅ nessun errore tecnico tipo "Cannot read ..."
                                 setErr(e2?.message || "Errore invio richiesta");
                             } finally {
                                 setPending(false);
                             }
                         }}
                     >
-                        <input
-                            name="name"
-                            placeholder="Nome e cognome *"
-                            required
-                            className={UI.input}
-                        />
-                        <input
-                            name="email"
-                            type="email"
-                            placeholder="Email istituzionale *"
-                            required
-                            className={UI.input}
-                        />
+                        <input name="name" placeholder="Nome e cognome *" required className={UI.input} />
+                        <input name="email" type="email" placeholder="Email istituzionale *" required className={UI.input} />
                         <input name="ente" placeholder="Ente / Struttura" className={UI.input} />
 
                         <input
