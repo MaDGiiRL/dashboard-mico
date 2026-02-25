@@ -21,7 +21,11 @@ function cx(...xs) {
 
 /* ---------- UI tokens (stesso stile, NO dark) ---------- */
 const UI = {
-    card: cx("rounded-3xl overflow-hidden", "bg-white/55 backdrop-blur-md", "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"),
+    card: cx(
+        "rounded-3xl overflow-hidden",
+        "bg-white/55 backdrop-blur-md",
+        "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"
+    ),
     accent: "h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500",
     softRing: "ring-1 ring-white/45",
     dim: "text-neutral-600",
@@ -68,7 +72,12 @@ function Pill({ tone = "neutral", children }) {
         disabled: "border-rose-500/30 bg-rose-500/10 text-rose-900",
     };
     return (
-        <span className={cx("inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold", map[tone] || map.neutral)}>
+        <span
+            className={cx(
+                "inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold",
+                map[tone] || map.neutral
+            )}
+        >
             {children}
         </span>
     );
@@ -82,7 +91,12 @@ function SeverityPill({ value }) {
         high: "border-rose-500/30 bg-rose-500/10 text-rose-900",
     };
     return (
-        <span className={cx("inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold", map[v] || map.medium)}>
+        <span
+            className={cx(
+                "inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold",
+                map[v] || map.medium
+            )}
+        >
             {v}
         </span>
     );
@@ -164,23 +178,34 @@ function AuditCard({ row }) {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className={cx("inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold", badge[tone] || badge.neutral)}>
+                            <span
+                                className={cx(
+                                    "inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold",
+                                    badge[tone] || badge.neutral
+                                )}
+                            >
                                 {String(row?.op || "-").toUpperCase()}
                             </span>
                             <div className="font-extrabold text-neutral-900 truncate">{row?.table_name}</div>
-                            <div className="text-xs text-neutral-500">{row?.changed_at ? new Date(row.changed_at).toLocaleString() : ""}</div>
+                            <div className="text-xs text-neutral-500">
+                                {row?.changed_at ? new Date(row.changed_at).toLocaleString() : ""}
+                            </div>
                         </div>
 
                         <div className="mt-2 text-xs text-neutral-700">
-                            <span className="font-semibold">Chi:</span>{" "}
-                            {row?.actor_email || "system"}
+                            <span className="font-semibold">Chi:</span> {row?.actor_email || "system"}
                             {row?.actor_role ? ` (${row.actor_role})` : ""}
                             {row?.actor_user_id ? ` • id:${row.actor_user_id}` : ""}
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span className={cx("text-xs font-extrabold rounded-full px-3 py-1 border", "border-white/40 bg-white/40 text-neutral-800")}>
+                        <span
+                            className={cx(
+                                "text-xs font-extrabold rounded-full px-3 py-1 border",
+                                "border-white/40 bg-white/40 text-neutral-800"
+                            )}
+                        >
                             audit_changes
                         </span>
                     </div>
@@ -212,7 +237,10 @@ export default function Admin() {
     });
 
     // ---- Access requests ----
-    const reqQ = useQuery({ queryKey: ["admin_access_requests"], queryFn: () => api.adminAccessRequests("all") });
+    const reqQ = useQuery({
+        queryKey: ["admin_access_requests"],
+        queryFn: () => api.adminAccessRequests("all"),
+    });
 
     const approve = useMutation({
         mutationFn: ({ id, role }) => api.adminApproveAccessRequest(id, { role }),
@@ -220,12 +248,12 @@ export default function Admin() {
     });
 
     const reject = useMutation({
-        mutationFn: ({ id, note }) => api.adminRejectAccessRequest(id, { note }),
+        mutationFn: ({ id }) => api.adminRejectAccessRequest(id, {}),
         onSuccess: () => qc.invalidateQueries({ queryKey: ["admin_access_requests"] }),
     });
 
     const revoke = useMutation({
-        mutationFn: ({ id, note }) => api.adminRevokeAccessRequest(id, { note }),
+        mutationFn: ({ id }) => api.adminRevokeAccessRequest(id, {}),
         onSuccess: () => qc.invalidateQueries({ queryKey: ["admin_access_requests"] }),
     });
 
@@ -236,10 +264,12 @@ export default function Admin() {
         let rows = reqQ.data?.rows || [];
         if (reqFilter !== "all") rows = rows.filter((r) => r.status === reqFilter);
 
-        const q = reqSearch.trim().toLowerCase();
-        if (q) {
+        const qx = reqSearch.trim().toLowerCase();
+        if (qx) {
             rows = rows.filter((r) =>
-                `${r.display_name || ""} ${r.email || ""} ${r.organization || ""} ${r.reason || ""}`.toLowerCase().includes(q)
+                `${r.display_name || ""} ${r.email || ""} ${r.organization || ""}`
+                    .toLowerCase()
+                    .includes(qx)
             );
         }
         return rows;
@@ -261,10 +291,12 @@ export default function Admin() {
 
     const issueRows = useMemo(() => {
         let rows = issuesQ.data?.rows || [];
-        const q = issueSearch.trim().toLowerCase();
-        if (q) {
+        const qx = issueSearch.trim().toLowerCase();
+        if (qx) {
             rows = rows.filter((r) =>
-                `${r.title || ""} ${r.message || ""} ${r.page || ""} ${r.reporter_email || ""}`.toLowerCase().includes(q)
+                `${r.title || ""} ${r.message || ""} ${r.page || ""} ${r.reporter_email || ""}`
+                    .toLowerCase()
+                    .includes(qx)
             );
         }
         return rows;
@@ -278,9 +310,6 @@ export default function Admin() {
     const auditQ = useQuery({
         queryKey: ["admin_db_audit_paged", page, refreshTick],
         queryFn: async () => {
-            // backend attuale supporta solo "limit"
-            // qui prendiamo più righe e facciamo slicing lato FE.
-            // (se vuoi paginazione vera lato BE: ti do l'endpoint con offset/cursor)
             const needed = (page + 1) * PAGE_SIZE;
             const out = await api.adminDbAudit(Math.min(needed, 500));
             const all = out?.rows || [];
@@ -304,7 +333,9 @@ export default function Admin() {
                 <div className="p-6 bg-white/40">
                     <div className="text-xs font-extrabold tracking-wide text-neutral-600">GESTIONE</div>
                     <h1 className="mt-1 text-2xl font-extrabold text-neutral-900">Admin Panel</h1>
-                    <div className={cx("mt-2 text-xs", UI.dim2)}>Utenti, ruoli, richieste abilitazione + segnalazioni + DB audit</div>
+                    <div className={cx("mt-2 text-xs", UI.dim2)}>
+                        Utenti, ruoli, richieste abilitazione + segnalazioni + DB audit
+                    </div>
                 </div>
             </div>
 
@@ -318,7 +349,12 @@ export default function Admin() {
                     <div className="flex items-center gap-2">
                         <div className="relative">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                            <Input value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} placeholder="Cerca…" className="pl-9 w-[220px]" />
+                            <Input
+                                value={reqSearch}
+                                onChange={(e) => setReqSearch(e.target.value)}
+                                placeholder="Cerca…"
+                                className="pl-9 w-[220px]"
+                            />
                         </div>
                     </div>
                 }
@@ -354,12 +390,8 @@ export default function Admin() {
                                             {r.organization ? ` • ${r.organization}` : ""}
                                         </div>
 
-                                        <div className="mt-3 whitespace-pre-wrap text-neutral-900/90">{r.reason}</div>
-
                                         <div className={cx("mt-3 text-xs", UI.dim2)}>
                                             Inviata: {r.created_at ? new Date(r.created_at).toLocaleString() : "-"}
-                                            {r.decided_at ? ` • Decisione: ${new Date(r.decided_at).toLocaleString()}` : ""}
-                                            {r.decided_by ? ` • by ${r.decided_by}` : ""}
                                         </div>
                                     </div>
 
@@ -378,7 +410,7 @@ export default function Admin() {
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => reject.mutate({ id: r.id, note: "Rifiutata da admin" })}
+                                                    onClick={() => reject.mutate({ id: r.id })}
                                                     className={UI.btnDanger}
                                                 >
                                                     <X size={16} /> Rifiuta
@@ -387,7 +419,11 @@ export default function Admin() {
                                         )}
 
                                         {r.status === "approved" && (
-                                            <button type="button" onClick={() => revoke.mutate({ id: r.id, note: "Revocata da admin" })} className={UI.btnDark}>
+                                            <button
+                                                type="button"
+                                                onClick={() => revoke.mutate({ id: r.id })}
+                                                className={UI.btnDark}
+                                            >
                                                 Revoca richiesta
                                             </button>
                                         )}
@@ -397,7 +433,11 @@ export default function Admin() {
                         </div>
                     ))}
 
-                    {reqRows.length === 0 && <div className={cx("text-sm", UI.dim)}>Nessuna richiesta in questa vista.</div>}
+                    {reqRows.length === 0 && (
+                        <div className={cx("text-sm", UI.dim)}>
+                            Nessuna richiesta in questa vista.
+                        </div>
+                    )}
                 </div>
             </ToneCard>
 
@@ -480,7 +520,9 @@ export default function Admin() {
                     ))}
 
                     {(issueRows || []).length === 0 && (
-                        <div className={cx("text-sm", UI.dim)}>{issuesQ.isLoading ? "Caricamento…" : "Nessuna segnalazione in questa vista."}</div>
+                        <div className={cx("text-sm", UI.dim)}>
+                            {issuesQ.isLoading ? "Caricamento…" : "Nessuna segnalazione in questa vista."}
+                        </div>
                     )}
                 </div>
             </ToneCard>

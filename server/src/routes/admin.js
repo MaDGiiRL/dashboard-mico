@@ -143,9 +143,9 @@ export async function adminRoutes(app) {
         const allowed = new Set(["pending", "approved", "rejected", "revoked", "all"]);
         const s = allowed.has(status) ? status : "all";
 
-        // ✅ compatibile col tuo schema attuale: niente decision_note/decided_at/decided_by
+        // ✅ nuovo schema: niente reason
         const baseSql = `
-      select id, display_name, email, organization, reason, status, created_at
+      select id, display_name, email, organization, status, created_at
       from access_requests
     `;
 
@@ -166,19 +166,25 @@ export async function adminRoutes(app) {
             const body = z
                 .object({
                     role: z.enum(["viewer", "editor", "admin"]).default("viewer"),
-                    note: z.string().optional().nullable(), // tenuto per compat FE, ma non lo salviamo se colonna non esiste
                 })
                 .parse(req.body || {});
 
-            const ar = (await q("select * from access_requests where id=$1", [params.id]))[0];
+            // ✅ leggiamo password_hash dalla richiesta
+            const ar = (
+                await q(
+                    "select id, email, display_name, organization, status, password_hash from access_requests where id=$1",
+                    [params.id]
+                )
+            )[0];
             if (!ar) return reply.status(404).send({ error: "Not found" });
             if (ar.status !== "pending") return reply.status(409).send({ error: "Richiesta già processata" });
 
             const existing = (await q("select id from users where lower(email)=lower($1) limit 1", [ar.email]))[0];
             if (existing) return reply.status(409).send({ error: "Esiste già un utente con questa email" });
 
-            const tempPassword = `Temp${Math.random().toString(36).slice(2, 8)}!`;
-            const password_hash = await hashPassword(tempPassword);
+            if (!ar.password_hash) {
+                return reply.status(400).send({ error: "Richiesta senza password. Richiedi all’utente di reinviarla." });
+            }
 
             const createdUser = (
                 await qAsUser(
@@ -186,7 +192,7 @@ export async function adminRoutes(app) {
                     `insert into users (email, password_hash, display_name, role, is_active)
            values ($1,$2,$3,$4,true)
            returning id, email, display_name, role, is_active, created_at`,
-                    [String(ar.email).toLowerCase(), password_hash, ar.display_name, body.role]
+                    [String(ar.email).toLowerCase(), ar.password_hash, ar.display_name, body.role]
                 )
             )[0];
 
@@ -196,7 +202,7 @@ export async function adminRoutes(app) {
                     `update access_requests
            set status='approved'
            where id=$1
-           returning id, display_name, email, organization, reason, status, created_at`,
+           returning id, display_name, email, organization, status, created_at`,
                     [params.id]
                 )
             )[0];
@@ -211,7 +217,8 @@ export async function adminRoutes(app) {
                 after: { request: updatedReq, user: createdUser },
             });
 
-            return { ok: true, request: updatedReq, user: createdUser, temp_password: tempPassword };
+            // ✅ niente temp_password
+            return { ok: true, request: updatedReq, user: createdUser };
         } catch (e) {
             return reply.status(400).send({ error: e.message || "Bad request" });
         }
@@ -234,7 +241,7 @@ export async function adminRoutes(app) {
                     `update access_requests
            set status='rejected'
            where id=$1
-           returning id, display_name, email, organization, reason, status, created_at`,
+           returning id, display_name, email, organization, status, created_at`,
                     [params.id]
                 )
             )[0];
@@ -272,7 +279,7 @@ export async function adminRoutes(app) {
                     `update access_requests
            set status='revoked'
            where id=$1
-           returning id, display_name, email, organization, reason, status, created_at`,
+           returning id, display_name, email, organization, status, created_at`,
                     [params.id]
                 )
             )[0];
@@ -326,7 +333,6 @@ export async function adminRoutes(app) {
 
         return { rows };
     });
-
 
     app.get("/admin/db-audit", async (req, reply) => {
         await requireRole(["admin"])(req, reply);
