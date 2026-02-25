@@ -8,12 +8,12 @@ export default function Footer() {
 
                 <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-neutral-600">
-                        <div className="flex items-center gap-1">
+                        {/* <div className="flex items-center gap-1">
                             <span>Developed with</span>
                             <span className="text-rose-500">❤️</span>
                             <span>by</span>
                             <span className="text-neutral-900 font-semibold">Sofia Vidotto</span>
-                        </div>
+                        </div> */}
 
                         <div className="text-neutral-700 font-medium">Protezione Civile Regione Veneto</div>
                     </div>
