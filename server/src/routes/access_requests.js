@@ -18,17 +18,25 @@ export async function accessRequestsRoutes(app) {
             const display_name = body.name.trim();
             const organization = (body.ente || "").trim() || null;
 
-            const u = await q("select id from users where lower(email)=lower($1) limit 1", [email]);
-            if (u?.[0]) return reply.status(409).send({ error: "Utente già presente. Contatta l'amministrazione." });
+            const u = await q(
+                "select id from users where lower(email)=lower($1) limit 1",
+                [email]
+            );
+            if (u?.[0])
+                return reply
+                    .status(409)
+                    .send({ error: "Utente già presente. Contatta l'amministrazione." });
 
             const existing = await q(
                 "select id from access_requests where lower(email)=lower($1) and status='pending' order by created_at desc limit 1",
                 [email]
             );
-            if (existing?.[0]) return reply.status(409).send({ error: "Hai già una richiesta in valutazione." });
+            if (existing?.[0])
+                return reply.status(409).send({ error: "Hai già una richiesta in valutazione." });
 
             const password_hash = await bcrypt.hash(body.password, 12);
 
+            // ✅ NIENTE reason
             const created = (
                 await q(
                     `insert into access_requests (display_name, email, organization, password_hash, status)
