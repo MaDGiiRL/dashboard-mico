@@ -36,7 +36,7 @@ export default function OlympicLoader({ label = "Caricamento…" }) {
 
           <div className="mt-5 text-center">
             <div className="text-sm font-extrabold tracking-wide text-neutral-600">
-              OLIMPIADI MODE
+              OLIMPIADI MILANO-CORTINA 2026
             </div>
             <div className="mt-1 text-lg font-extrabold text-neutral-900">{label}</div>
             <div className="mt-2 text-xs text-neutral-500">
