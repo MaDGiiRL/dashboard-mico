@@ -341,21 +341,10 @@ export async function adminRoutes(app) {
         const limit = Math.min(Number(req.query?.limit || 200), 500);
 
         const rows = await q(
-            `
-        select
-          ac.id,
-          ac.changed_at,
-          ac.table_name,
-          ac.op,
-          ac.actor_user_id,
-          ac.actor_email,
-          ac.actor_role,
-          u.display_name as actor_name
-        from audit_changes ac
-        left join users u on u.id = ac.actor_user_id
-        order by ac.changed_at desc
-        limit $1
-        `,
+            `select id, changed_at, table_name, op, actor_user_id, actor_email, actor_role
+       from audit_changes
+       order by changed_at desc
+       limit $1`,
             [limit]
         );
 
