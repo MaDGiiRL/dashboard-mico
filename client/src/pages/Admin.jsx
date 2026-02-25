@@ -155,8 +155,10 @@ function auditTone(op) {
     return "neutral";
 }
 
+
 function AuditCard({ row }) {
     const tone = auditTone(row?.op);
+
     const accents = {
         emerald: "from-emerald-500/25 via-emerald-500/10 to-white/0",
         amber: "from-amber-500/25 via-amber-500/10 to-white/0",
@@ -171,12 +173,20 @@ function AuditCard({ row }) {
         neutral: "border-neutral-200/70 bg-white/60 text-neutral-900",
     };
 
+    const actorName =
+        row?.actor_name ||
+        row?.actor_email ||
+        "system";
+
     return (
         <div className={cx("rounded-3xl overflow-hidden", "bg-white/55 ring-1 ring-white/45 shadow-sm")}>
             <div className={cx("h-1.5 bg-gradient-to-r", accents[tone] || accents.neutral)} />
+
             <div className="p-4 bg-white/35">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+
                     <div className="min-w-0">
+
                         <div className="flex flex-wrap items-center gap-2">
                             <span
                                 className={cx(
@@ -186,17 +196,28 @@ function AuditCard({ row }) {
                             >
                                 {String(row?.op || "-").toUpperCase()}
                             </span>
-                            <div className="font-extrabold text-neutral-900 truncate">{row?.table_name}</div>
+
+                            <div className="font-extrabold text-neutral-900 truncate">
+                                {row?.table_name}
+                            </div>
+
                             <div className="text-xs text-neutral-500">
-                                {row?.changed_at ? new Date(row.changed_at).toLocaleString() : ""}
+                                {row?.changed_at
+                                    ? new Date(row.changed_at).toLocaleString()
+                                    : ""}
                             </div>
                         </div>
 
                         <div className="mt-2 text-xs text-neutral-700">
-                            <span className="font-semibold">Chi:</span> {row?.actor_email || "system"}
+                            <span className="font-semibold">Chi:</span>{" "}
+                            <span className="font-semibold text-neutral-900">
+                                {actorName}
+                            </span>
+
                             {row?.actor_role ? ` (${row.actor_role})` : ""}
                             {row?.actor_user_id ? ` • id:${row.actor_user_id}` : ""}
                         </div>
+
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -209,6 +230,7 @@ function AuditCard({ row }) {
                             audit_changes
                         </span>
                     </div>
+
                 </div>
             </div>
         </div>
