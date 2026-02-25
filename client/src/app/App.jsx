@@ -15,13 +15,18 @@ import Admin from "../pages/Admin.jsx";
 import ActivityLog from "../pages/ActivityLog.jsx";
 import Utility from "../pages/Utility.jsx";
 
-// ✅ nuove pagine
 import CocSafety from "../pages/CocSafety.jsx";
 import AnaInventory from "../pages/AnaInventory.jsx";
 
+// ✅ loader olimpico
+import OlympicLoader from "../components/OlympicLoader.jsx";
+
 function Protected({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="p-6 text-neutral-700 dark:text-neutral-300">Caricamento…</div>;
+
+  // ✅ invece del testo in alto a sx
+  if (loading) return <OlympicLoader label="Caricamento in corso…" />;
+
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
@@ -49,11 +54,8 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
-
-        {/* nuove route */}
         <Route path="coc-safety" element={<CocSafety />} />
         <Route path="inventario" element={<AnaInventory />} />
-
         <Route path="mappa" element={<Mappa />} />
         <Route path="criticita" element={<Criticita />} />
         <Route path="meteo" element={<Meteo />} />
