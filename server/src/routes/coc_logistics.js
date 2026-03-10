@@ -42,6 +42,7 @@ export async function cocLogisticsRoutes(app) {
                     .parse(req.query);
 
                 let rows;
+
                 if (query.from && query.to) {
                     rows = await q(
                         `
@@ -151,7 +152,12 @@ export async function cocLogisticsRoutes(app) {
         async (req, reply) => {
             try {
                 const params = z.object({ id: z.coerce.number().int().positive() }).parse(req.params);
-                const rows = await q(`delete from coc_logistics_daily where id=$1 returning id`, [params.id]);
+
+                const rows = await q(
+                    `delete from coc_logistics_daily where id=$1 returning id`,
+                    [params.id]
+                );
+
                 if (!rows?.[0]) return reply.status(404).send({ error: "Not found" });
                 return { ok: true };
             } catch (e) {

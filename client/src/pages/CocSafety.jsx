@@ -6,7 +6,10 @@ import { api } from "../lib/api.js";
 
 import Modal from "../components/Modal.jsx";
 import { cocContactsAll } from "../data/coc_contacts_2026.js";
-import { SAFETY_BELLUNO_EXTERNAL_NUMBER, safetyBellunoContactsAll } from "../data/safety_belluno_contacts_2026.js";
+import {
+    SAFETY_BELLUNO_EXTERNAL_NUMBER,
+    safetyBellunoContactsAll,
+} from "../data/safety_belluno_contacts_2026.js";
 
 import {
     Building2,
@@ -62,7 +65,9 @@ async function confirmDanger(text = "Sei sicuro?") {
 /* ------------------ helpers ------------------ */
 function todayISO() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+    ).padStart(2, "0")}`;
 }
 function cx(...xs) {
     return xs.filter(Boolean).join(" ");
@@ -321,6 +326,23 @@ function DetailsBody({ label, text, kind }) {
         </Field>
     );
 }
+function TabBtn({ active, children, onClick }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cx(
+                "rounded-2xl px-3 py-2 text-sm font-extrabold transition",
+                "shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
+                active
+                    ? "bg-indigo-500/14 ring-indigo-500/18 text-indigo-950"
+                    : "bg-white/55 hover:bg-white/70 text-neutral-800 ring-white/45"
+            )}
+        >
+            {children}
+        </button>
+    );
+}
 
 /* ------------------ pagination helpers ------------------ */
 function paginate(items, page, perPage) {
@@ -373,6 +395,7 @@ function Pager({ page, pages, total, perPage, onPage }) {
 export default function CocSafety() {
     const qc = useQueryClient();
     const [day, setDay] = useState(todayISO());
+    const [logisticsTab, setLogisticsTab] = useState("borca");
 
     // DASHBOARD COC
     const dash = useQuery({
@@ -464,10 +487,11 @@ export default function CocSafety() {
     const cocStaticFiltered = useMemo(() => {
         let xs = cocAll;
         const q = cocSearch.trim().toLowerCase();
-        if (q)
+        if (q) {
             xs = xs.filter((x) =>
                 `${safeStr(x.commune)} ${safeStr(x.contacts)}`.toLowerCase().includes(q)
             );
+        }
         return xs;
     }, [cocAll, cocSearch]);
 
@@ -488,7 +512,6 @@ export default function CocSafety() {
             const openTo = hhmmFromAny(st?.open_to);
 
             const hasOrd = ord ? Boolean(ord.ordinance) : Boolean(c.ordinance);
-
             const hasPdf = false;
 
             return {
@@ -516,14 +539,12 @@ export default function CocSafety() {
 
     /* ================= MUTATIONS COC ================= */
 
-    // COC status realtime (optimistic)
     const upsertCocStatus = useMutation({
         mutationFn: (payload) => api.upsertCocStatus(payload),
         onMutate: async (payload) => {
             await qc.cancelQueries({ queryKey: ["dashboardDay", day] });
 
             const prev = qc.getQueryData(["dashboardDay", day]);
-
             const key = String(payload.commune_name || "").trim().toLowerCase();
 
             qc.setQueryData(["dashboardDay", day], (old) => {
@@ -570,7 +591,6 @@ export default function CocSafety() {
         },
     });
 
-    // COC commune + contacts
     const upsertCocCommune = useMutation({
         mutationFn: (payload) => api.upsertCocCommune(payload),
         onSuccess: async () => {
@@ -590,7 +610,6 @@ export default function CocSafety() {
         onError: (e) => toastErr(e, "Errore salvataggio comune"),
     });
 
-    // COC notes
     const createCocNote = useMutation({
         mutationFn: (payload) => api.createCocNote(payload),
         onSuccess: async () => {
@@ -612,7 +631,6 @@ export default function CocSafety() {
         onError: (e) => toastErr(e, "Errore eliminazione nota"),
     });
 
-    // Ordinanza upload+download
     const uploadCocOrdinance = useMutation({
         mutationFn: ({ day, commune_name, file }) =>
             api.uploadCocOrdinance({ day, commune_name, file }),
@@ -653,6 +671,10 @@ export default function CocSafety() {
         return logisticsRows.find((r) => String(r.day).slice(0, 10) === day) || null;
     }, [logisticsRows, day]);
 
+    useEffect(() => {
+        setLogisticsTab("borca");
+    }, [day]);
+
     const [logisticsModal, setLogisticsModal] = useState({
         open: false,
         day: "",
@@ -692,7 +714,6 @@ export default function CocSafety() {
     const [safetySearch, setSafetySearch] = useState("");
     const [safetyPage, setSafetyPage] = useState(1);
 
-    // lista DB (non dipende dal day)
     const safetyQ = useQuery({
         queryKey: ["safetyContacts"],
         queryFn: () => api.listSafetyContacts(false),
@@ -700,7 +721,6 @@ export default function CocSafety() {
 
     const safetyDb = safetyQ.data?.contacts || [];
 
-    // fingerprint per dedup (static vs db)
     function fp(row) {
         return `${safeStr(row.operator).trim().toLowerCase()}|${safeStr(row.interno)
             .trim()
@@ -738,7 +758,6 @@ export default function CocSafety() {
         [safetyMerged, safetyPage]
     );
 
-    // modali Safety
     const [safetyAddModal, setSafetyAddModal] = useState({
         open: false,
         mode: "create",
@@ -758,14 +777,12 @@ export default function CocSafety() {
     });
     const [newSafetyNote, setNewSafetyNote] = useState("");
 
-    // notes query per contatto
     const safetyNotesQ = useQuery({
         queryKey: ["safetyNotes", safetyNotesModal.contactId],
         queryFn: () => api.listSafetyContactNotes(safetyNotesModal.contactId),
         enabled: Boolean(safetyNotesModal.open && safetyNotesModal.contactId),
     });
 
-    // helper: se clicchi “note” su static, crea contatto DB al volo e poi apre note
     async function ensureDbContactId(row) {
         if (row?._source === "db" && row?.id) return row.id;
 
@@ -783,7 +800,6 @@ export default function CocSafety() {
         return id;
     }
 
-    // mutations Safety
     const createSafetyContact = useMutation({
         mutationFn: (payload) => api.createSafetyContact(payload),
         onSuccess: async () => {
@@ -985,9 +1001,7 @@ export default function CocSafety() {
                                             </div>
 
                                             <div className={cx("mt-3 text-xs", UI.dim2)}>
-                                                {c.overlay?.openMode
-                                                    ? `modo: ${c.overlay.openMode}`
-                                                    : ""}
+                                                {c.overlay?.openMode ? `modo: ${c.overlay.openMode}` : ""}
                                                 {c.overlay?.openFrom && c.overlay?.openTo
                                                     ? ` • ${c.overlay.openFrom}–${c.overlay.openTo}`
                                                     : ""}
@@ -1035,20 +1049,14 @@ export default function CocSafety() {
                                                     })
                                                 }
                                             >
-                                                {isOpen ? (
-                                                    <DoorClosed size={16} />
-                                                ) : (
-                                                    <DoorOpen size={16} />
-                                                )}
+                                                {isOpen ? <DoorClosed size={16} /> : <DoorOpen size={16} />}
                                                 {isOpen ? "Chiudi" : "Apri"}
                                             </MiniBtn>
 
                                             <MiniBtn
                                                 tone="coc"
                                                 title="Ordinanza (upload/scarica)"
-                                                onClick={() =>
-                                                    setOrdModal({ open: true, commune_name: c.commune })
-                                                }
+                                                onClick={() => setOrdModal({ open: true, commune_name: c.commune })}
                                             >
                                                 <FileCheck2 size={16} /> Ordin.
                                             </MiniBtn>
@@ -1060,9 +1068,7 @@ export default function CocSafety() {
                                                     openDetails({
                                                         title: `Recapiti — ${c.commune}`,
                                                         contentLabel: "Recapiti",
-                                                        contentText: c.contacts
-                                                            ? String(c.contacts)
-                                                            : "Nessun recapito.",
+                                                        contentText: c.contacts ? String(c.contacts) : "Nessun recapito.",
                                                         kind: "contacts",
                                                     })
                                                 }
@@ -1097,7 +1103,7 @@ export default function CocSafety() {
             <div className={cx(UI.card, UI.softRing)}>
                 <div className={UI.accent} />
                 <div className="p-5 bg-white/40">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center gap-3">
                             <div className="h-11 w-11 rounded-2xl ring-1 ring-white/45 bg-white/55 grid place-items-center shadow-sm">
                                 <Users size={18} className="text-indigo-950" />
@@ -1107,42 +1113,57 @@ export default function CocSafety() {
                                     Logistica operativa
                                 </div>
                                 <div className={cx("text-xs mt-1", UI.dim2)}>
-                                    fuori • in sala • reperibili • auto • orari
+                                    organizzazione del giorno • Borca / Sala
                                 </div>
                             </div>
                         </div>
 
-                        <MiniBtn
-                            tone="ops"
-                            title="Modifica logistica del giorno"
-                            onClick={() =>
-                                setLogisticsModal({
-                                    open: true,
-                                    day,
-                                    weekday_it: logisticsRow?.weekday_it || "",
-                                    month_label: logisticsRow?.month_label || "",
-                                    logistics_officer: logisticsRow?.logistics_officer || "",
-                                    turns_ssv: logisticsRow?.turns_ssv || "",
-                                    sor_marghera: logisticsRow?.sor_marghera || "",
-                                    borca_morning: logisticsRow?.borca_morning || "",
-                                    borca_evening: logisticsRow?.borca_evening || "",
-                                    substitute_reinforcement:
-                                        logisticsRow?.substitute_reinforcement || "",
-                                    referent: logisticsRow?.referent || "",
-                                    borca_vehicle: logisticsRow?.borca_vehicle || "",
-                                    reperibili: logisticsRow?.reperibili || "",
-                                    room_sor_marghera: logisticsRow?.room_sor_marghera || "",
-                                    room_borca: logisticsRow?.room_borca || "",
-                                    room_extra: logisticsRow?.room_extra || "",
-                                    race_time: logisticsRow?.race_time || "",
-                                    safety_room_hours:
-                                        logisticsRow?.safety_room_hours || "",
-                                    notes: logisticsRow?.notes || "",
-                                })
-                            }
-                        >
-                            <Pencil size={16} /> Modifica giorno
-                        </MiniBtn>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <TabBtn
+                                active={logisticsTab === "borca"}
+                                onClick={() => setLogisticsTab("borca")}
+                            >
+                                Borca
+                            </TabBtn>
+                            <TabBtn
+                                active={logisticsTab === "sala"}
+                                onClick={() => setLogisticsTab("sala")}
+                            >
+                                Sala
+                            </TabBtn>
+
+                            <MiniBtn
+                                tone="ops"
+                                title="Modifica logistica del giorno"
+                                onClick={() =>
+                                    setLogisticsModal({
+                                        open: true,
+                                        day,
+                                        weekday_it: logisticsRow?.weekday_it || "",
+                                        month_label: logisticsRow?.month_label || "",
+                                        logistics_officer: logisticsRow?.logistics_officer || "",
+                                        turns_ssv: logisticsRow?.turns_ssv || "",
+                                        sor_marghera: logisticsRow?.sor_marghera || "",
+                                        borca_morning: logisticsRow?.borca_morning || "",
+                                        borca_evening: logisticsRow?.borca_evening || "",
+                                        substitute_reinforcement:
+                                            logisticsRow?.substitute_reinforcement || "",
+                                        referent: logisticsRow?.referent || "",
+                                        borca_vehicle: logisticsRow?.borca_vehicle || "",
+                                        reperibili: logisticsRow?.reperibili || "",
+                                        room_sor_marghera: logisticsRow?.room_sor_marghera || "",
+                                        room_borca: logisticsRow?.room_borca || "",
+                                        room_extra: logisticsRow?.room_extra || "",
+                                        race_time: logisticsRow?.race_time || "",
+                                        safety_room_hours:
+                                            logisticsRow?.safety_room_hours || "",
+                                        notes: logisticsRow?.notes || "",
+                                    })
+                                }
+                            >
+                                <Pencil size={16} /> Modifica giorno
+                            </MiniBtn>
+                        </div>
                     </div>
 
                     {logisticsQ.isLoading ? (
@@ -1158,115 +1179,172 @@ export default function CocSafety() {
                         </div>
                     ) : (
                         <>
-                            <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                {/* FUORI */}
-                                <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
-                                    <div className="h-1.5 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-500" />
-                                    <div className="p-5 bg-white/40">
-                                        <div className="font-extrabold text-neutral-900">Fuori</div>
-
-                                        <div className="mt-4 space-y-3">
-                                            <Field label="Borca 8:00–15:30">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.borca_morning || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Borca 15:30–22:00">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.borca_evening || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Sostituto / Rinforzo">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.substitute_reinforcement || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Referente">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.referent || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Auto per Borca di Cadore">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.borca_vehicle || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Reperibili">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.reperibili || "—"}
-                                                </div>
-                                            </Field>
-                                        </div>
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <Field label="Data">
+                                    <div className="text-sm font-extrabold text-neutral-900">
+                                        {logisticsRow.weekday_it || "—"} •{" "}
+                                        {String(logisticsRow.day).slice(0, 10)}
                                     </div>
-                                </div>
+                                </Field>
 
-                                {/* IN SALA */}
-                                <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
-                                    <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
-                                    <div className="p-5 bg-white/40">
-                                        <div className="font-extrabold text-neutral-900">In sala</div>
-
-                                        <div className="mt-4 space-y-3">
-                                            <Field label="Funzionario provinciale / logistica">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.logistics_officer || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="TURNI SSV">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.turns_ssv || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="SOR Marghera">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.sor_marghera || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Sala SOR Marghera">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.room_sor_marghera || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Sala Borca di Cadore">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.room_borca || "—"}
-                                                </div>
-                                            </Field>
-
-                                            <Field label="Sala extra">
-                                                <div className="text-sm whitespace-pre-wrap">
-                                                    {logisticsRow.room_extra || "—"}
-                                                </div>
-                                            </Field>
-                                        </div>
+                                <Field label="Mese">
+                                    <div className="text-sm font-extrabold text-neutral-900">
+                                        {logisticsRow.month_label || "—"}
                                     </div>
-                                </div>
-                            </div>
+                                </Field>
 
-                            <div className="mt-4 grid grid-cols-1 xl:grid-cols-3 gap-3">
                                 <Field label="Orario gare Cortina">
-                                    <div className="text-sm whitespace-pre-wrap">
+                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
                                         {logisticsRow.race_time || "—"}
                                     </div>
                                 </Field>
 
                                 <Field label="Sala Safety Belluno">
-                                    <div className="text-sm whitespace-pre-wrap">
+                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
                                         {logisticsRow.safety_room_hours || "—"}
                                     </div>
                                 </Field>
+                            </div>
 
-                                <Field label="Note">
-                                    <div className="text-sm whitespace-pre-wrap">
+                            {logisticsTab === "borca" && (
+                                <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
+                                        <div className="h-1.5 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-500" />
+                                        <div className="p-5 bg-white/40">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="font-extrabold text-neutral-900">
+                                                    Turni Borca
+                                                </div>
+                                                <Chip tone="info">Fuori</Chip>
+                                            </div>
+
+                                            <div className="mt-4 space-y-3">
+                                                <Field label="Turno 8:00–15:30">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.borca_morning || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="Turno 15:30–22:00">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.borca_evening || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="Sostituto / Rinforzo">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.substitute_reinforcement || "—"}
+                                                    </div>
+                                                </Field>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
+                                        <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500" />
+                                        <div className="p-5 bg-white/40">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="font-extrabold text-neutral-900">
+                                                    Supporto operativo
+                                                </div>
+                                                <Chip tone="good">Operativo</Chip>
+                                            </div>
+
+                                            <div className="mt-4 space-y-3">
+                                                <Field label="Referente">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.referent || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="Auto per Borca di Cadore">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.borca_vehicle || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="Reperibili">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.reperibili || "—"}
+                                                    </div>
+                                                </Field>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {logisticsTab === "sala" && (
+                                <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
+                                        <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
+                                        <div className="p-5 bg-white/40">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="font-extrabold text-neutral-900">
+                                                    Coordinamento sala
+                                                </div>
+                                                <Chip tone="warn">Sala</Chip>
+                                            </div>
+
+                                            <div className="mt-4 space-y-3">
+                                                <Field label="Funzionario provinciale / logistica">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.logistics_officer || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="TURNI SSV">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.turns_ssv || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="SOR Marghera">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.sor_marghera || "—"}
+                                                    </div>
+                                                </Field>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
+                                        <div className="h-1.5 bg-gradient-to-r from-violet-500 via-indigo-500 to-fuchsia-500" />
+                                        <div className="p-5 bg-white/40">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="font-extrabold text-neutral-900">
+                                                    Presenze in sala
+                                                </div>
+                                                <Chip tone="info">Presidi</Chip>
+                                            </div>
+
+                                            <div className="mt-4 space-y-3">
+                                                <Field label="Sala SOR Marghera">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.room_sor_marghera || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="Sala Borca di Cadore">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.room_borca || "—"}
+                                                    </div>
+                                                </Field>
+
+                                                <Field label="Sala extra">
+                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
+                                                        {logisticsRow.room_extra || "—"}
+                                                    </div>
+                                                </Field>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-4">
+                                <Field label="Note del giorno">
+                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
                                         {logisticsRow.notes || "—"}
                                     </div>
                                 </Field>
@@ -1380,9 +1458,7 @@ export default function CocSafety() {
                                                 </Chip>
                                                 <Chip tone="neutral">
                                                     gruppo: {c.responder_group || "—"}{" "}
-                                                    {c.responder_digit
-                                                        ? `(${c.responder_digit})`
-                                                        : ""}
+                                                    {c.responder_digit ? `(${c.responder_digit})` : ""}
                                                 </Chip>
                                             </div>
 
