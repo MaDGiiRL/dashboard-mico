@@ -2,9 +2,9 @@
 const API = import.meta.env.VITE_API_URL;
 
 if (!API) {
-  console.error(
-    "❌ VITE_API_URL mancante. Metti in .env: VITE_API_URL=http://localhost:8080 e riavvia Vite."
-  );
+    console.error(
+        "❌ VITE_API_URL mancante. Metti in .env: VITE_API_URL=http://localhost:8080 e riavvia Vite."
+    );
 }
 
 let token = localStorage.getItem("token") || null;
@@ -386,7 +386,7 @@ export const api = {
 
 
 
-        // =========================
+    // =========================
     // ISSUE REPORTS (SEGNALAZIONI)
     // =========================
 
@@ -411,5 +411,25 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ status }),
         }),
+
+    listCocLogistics(from, to) {
+        const qs = new URLSearchParams();
+        if (from) qs.set("from", from);
+        if (to) qs.set("to", to);
+        return request(`/coc-logistics?${qs.toString()}`);
+    },
+
+    upsertCocLogistics(payload) {
+        return request(`/coc-logistics/upsert`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+    },
+
+    deleteCocLogistics(id) {
+        return request(`/coc-logistics/${id}`, {
+            method: "DELETE",
+        });
+    },
 
 };

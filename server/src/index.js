@@ -20,6 +20,7 @@ import { cocCommunesRoutes } from "./routes/coc_communes.js";
 import { cocStatusRoutes } from "./routes/coc_status.js";
 import { cocOrdinancesRoutes } from "./routes/coc_ordinances.js";
 import { cocNotesRoutes } from "./routes/coc_notes.js";
+import { cocLogisticsRoutes } from "./routes/coc_logistics.js"; 
 import { utilityLinksRoutes } from "./routes/utility_links.js";
 import { pcRoutes } from "./routes/pc.js";
 import { safetyBellunoRoutes } from "./routes/safety_belluno.js";
@@ -71,6 +72,7 @@ await cocCommunesRoutes(app);
 await cocStatusRoutes(app);
 await cocOrdinancesRoutes(app);
 await cocNotesRoutes(app);
+await cocLogisticsRoutes(app);
 
 await safetyBellunoRoutes(app);
 await pcRoutes(app);

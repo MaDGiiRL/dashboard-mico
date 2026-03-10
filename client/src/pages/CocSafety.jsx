@@ -88,10 +88,8 @@ function fmtTs(ts) {
 function hhmmFromAny(v) {
     if (!v) return null;
     const s = String(v);
-    // timestamptz iso => "...T08:00:00.000Z"
     const mIso = s.match(/T(\d{2}:\d{2})/);
     if (mIso) return mIso[1];
-    // time => "08:00:00" o "08:00"
     const mTime = s.match(/^(\d{2}:\d{2})/);
     if (mTime) return mTime[1];
     return null;
@@ -166,6 +164,7 @@ const UI = {
         "shadow-sm ring-1 ring-white/45 " +
         "focus:ring-4 focus:ring-indigo-500/15",
 };
+
 function Input({ className, ...props }) {
     return <input {...props} className={cx(UI.input, className)} />;
 }
@@ -190,7 +189,15 @@ function Tag({ tone = "neutral", children }) {
         </span>
     );
 }
-function MiniBtn({ onClick, title, children, disabled, tone = "neutral", iconOnly = false, type = "button" }) {
+function MiniBtn({
+    onClick,
+    title,
+    children,
+    disabled,
+    tone = "neutral",
+    iconOnly = false,
+    type = "button",
+}) {
     const tones = {
         neutral: "bg-white/55 hover:bg-white/70 text-neutral-900 ring-white/45",
         coc: "bg-amber-500/14 hover:bg-amber-500/18 text-amber-950 ring-amber-500/18",
@@ -237,7 +244,9 @@ function Chip({ children, tone = "neutral" }) {
 function Field({ label, children }) {
     return (
         <div className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4">
-            <div className="text-[11px] uppercase tracking-wide text-neutral-500 font-extrabold">{label}</div>
+            <div className="text-[11px] uppercase tracking-wide text-neutral-500 font-extrabold">
+                {label}
+            </div>
             <div className="mt-2">{children}</div>
         </div>
     );
@@ -329,7 +338,8 @@ function Pager({ page, pages, total, perPage, onPage }) {
                 {total ? (
                     <>
                         Totale: <span className="text-neutral-900">{total}</span> • pagina{" "}
-                        <span className="text-neutral-900">{page}</span>/<span className="text-neutral-900">{pages}</span> •{" "}
+                        <span className="text-neutral-900">{page}</span>/
+                        <span className="text-neutral-900">{pages}</span> •{" "}
                         <span className="text-neutral-900">{perPage}</span> per pagina
                     </>
                 ) : (
@@ -338,10 +348,20 @@ function Pager({ page, pages, total, perPage, onPage }) {
             </div>
 
             <div className="flex items-center gap-2">
-                <MiniBtn tone="neutral" title="Precedente" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+                <MiniBtn
+                    tone="neutral"
+                    title="Precedente"
+                    disabled={page <= 1}
+                    onClick={() => onPage(page - 1)}
+                >
                     <ChevronLeft size={16} /> Prev
                 </MiniBtn>
-                <MiniBtn tone="neutral" title="Successiva" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+                <MiniBtn
+                    tone="neutral"
+                    title="Successiva"
+                    disabled={page >= pages}
+                    onClick={() => onPage(page + 1)}
+                >
                     Next <ChevronRight size={16} />
                 </MiniBtn>
             </div>
@@ -444,7 +464,10 @@ export default function CocSafety() {
     const cocStaticFiltered = useMemo(() => {
         let xs = cocAll;
         const q = cocSearch.trim().toLowerCase();
-        if (q) xs = xs.filter((x) => `${safeStr(x.commune)} ${safeStr(x.contacts)}`.toLowerCase().includes(q));
+        if (q)
+            xs = xs.filter((x) =>
+                `${safeStr(x.commune)} ${safeStr(x.contacts)}`.toLowerCase().includes(q)
+            );
         return xs;
     }, [cocAll, cocSearch]);
 
@@ -457,7 +480,9 @@ export default function CocSafety() {
             const ord = cocOrdinanceMap.get(k);
             const contactsDb = cocContactsMap.get(k) || [];
 
-            const isOpen = st ? Boolean(st.is_open) : String(c.coc_status || "").toLowerCase() === "aperto";
+            const isOpen = st
+                ? Boolean(st.is_open)
+                : String(c.coc_status || "").toLowerCase() === "aperto";
             const openMode = st?.open_mode || "DAY";
             const openFrom = hhmmFromAny(st?.open_from);
             const openTo = hhmmFromAny(st?.open_to);
@@ -465,7 +490,6 @@ export default function CocSafety() {
             const hasOrd = ord ? Boolean(ord.ordinance) : Boolean(c.ordinance);
 
             const hasPdf = false;
-
 
             return {
                 ...c,
@@ -492,12 +516,9 @@ export default function CocSafety() {
 
     /* ================= MUTATIONS COC ================= */
 
-    // ✅ COC status realtime (optimistic update su cache dashboardDay)
-    // COC status (apri/chiudi + orari + mode + room_phone)  ✅ realtime
+    // COC status realtime (optimistic)
     const upsertCocStatus = useMutation({
         mutationFn: (payload) => api.upsertCocStatus(payload),
-
-        // ✅ optimistic update: aggiorna subito il badge senza aspettare il refetch
         onMutate: async (payload) => {
             await qc.cancelQueries({ queryKey: ["dashboardDay", day] });
 
@@ -545,11 +566,9 @@ export default function CocSafety() {
 
         onSuccess: async () => {
             toastOk("COC aggiornato");
-            // ✅ dopo optimistic, refetch per allineare al DB
             await qc.invalidateQueries({ queryKey: ["dashboardDay", day] });
         },
     });
-
 
     // COC commune + contacts
     const upsertCocCommune = useMutation({
@@ -595,7 +614,8 @@ export default function CocSafety() {
 
     // Ordinanza upload+download
     const uploadCocOrdinance = useMutation({
-        mutationFn: ({ day, commune_name, file }) => api.uploadCocOrdinance({ day, commune_name, file }),
+        mutationFn: ({ day, commune_name, file }) =>
+            api.uploadCocOrdinance({ day, commune_name, file }),
         onSuccess: async () => {
             toastOk("PDF caricato");
             await qc.invalidateQueries({ queryKey: ["dashboardDay", day] });
@@ -620,6 +640,51 @@ export default function CocSafety() {
         }
     }
 
+    /* ================= LOGISTICA DAILY ================= */
+
+    const logisticsQ = useQuery({
+        queryKey: ["cocLogistics"],
+        queryFn: () => api.listCocLogistics("2026-01-01", "2026-03-31"),
+    });
+
+    const logisticsRows = logisticsQ.data?.rows || [];
+
+    const logisticsRow = useMemo(() => {
+        return logisticsRows.find((r) => String(r.day).slice(0, 10) === day) || null;
+    }, [logisticsRows, day]);
+
+    const [logisticsModal, setLogisticsModal] = useState({
+        open: false,
+        day: "",
+        weekday_it: "",
+        month_label: "",
+        logistics_officer: "",
+        turns_ssv: "",
+        sor_marghera: "",
+        borca_morning: "",
+        borca_evening: "",
+        substitute_reinforcement: "",
+        referent: "",
+        borca_vehicle: "",
+        reperibili: "",
+        room_sor_marghera: "",
+        room_borca: "",
+        room_extra: "",
+        race_time: "",
+        safety_room_hours: "",
+        notes: "",
+    });
+
+    const upsertLogistics = useMutation({
+        mutationFn: (payload) => api.upsertCocLogistics(payload),
+        onSuccess: async () => {
+            toastOk("Logistica salvata");
+            await qc.invalidateQueries({ queryKey: ["cocLogistics"] });
+            setLogisticsModal((s) => ({ ...s, open: false }));
+        },
+        onError: (e) => toastErr(e, "Errore logistica"),
+    });
+
     /* ================= SAFETY (DB + static fallback) ================= */
 
     const safetyStatic = useMemo(() => safetyBellunoContactsAll(), []);
@@ -637,7 +702,9 @@ export default function CocSafety() {
 
     // fingerprint per dedup (static vs db)
     function fp(row) {
-        return `${safeStr(row.operator).trim().toLowerCase()}|${safeStr(row.interno).trim().toLowerCase()}|${safeStr(row.external_dial).trim().toLowerCase()}`;
+        return `${safeStr(row.operator).trim().toLowerCase()}|${safeStr(row.interno)
+            .trim()
+            .toLowerCase()}|${safeStr(row.external_dial).trim().toLowerCase()}`;
     }
 
     const safetyMerged = useMemo(() => {
@@ -656,7 +723,9 @@ export default function CocSafety() {
         if (!q) return all;
 
         return all.filter((x) =>
-            `${safeStr(x.operator)} ${safeStr(x.interno)} ${safeStr(x.external_dial)} ${safeStr(x.responder_group)} ${safeStr(x.responder_digit)} ${safeStr(x.responder_note)}`
+            `${safeStr(x.operator)} ${safeStr(x.interno)} ${safeStr(x.external_dial)} ${safeStr(
+                x.responder_group
+            )} ${safeStr(x.responder_digit)} ${safeStr(x.responder_note)}`
                 .toLowerCase()
                 .includes(q)
         );
@@ -664,12 +733,15 @@ export default function CocSafety() {
 
     useEffect(() => setSafetyPage(1), [safetySearch]);
 
-    const safetyPaged = useMemo(() => paginate(safetyMerged, safetyPage, PER_PAGE), [safetyMerged, safetyPage]);
+    const safetyPaged = useMemo(
+        () => paginate(safetyMerged, safetyPage, PER_PAGE),
+        [safetyMerged, safetyPage]
+    );
 
     // modali Safety
     const [safetyAddModal, setSafetyAddModal] = useState({
         open: false,
-        mode: "create", // create | edit
+        mode: "create",
         id: null,
         operator: "",
         interno: "",
@@ -697,7 +769,6 @@ export default function CocSafety() {
     async function ensureDbContactId(row) {
         if (row?._source === "db" && row?.id) return row.id;
 
-        // static -> crea nel DB (editor/admin richiesto dal backend)
         const created = await api.createSafetyContact({
             operator: row.operator || null,
             interno: row.interno || null,
@@ -712,7 +783,7 @@ export default function CocSafety() {
         return id;
     }
 
-    // mutations Safety (con optimistic update sulla lista)
+    // mutations Safety
     const createSafetyContact = useMutation({
         mutationFn: (payload) => api.createSafetyContact(payload),
         onSuccess: async () => {
@@ -789,11 +860,15 @@ export default function CocSafety() {
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
                         <div>
                             <div className="flex items-center gap-2">
-                                <div className="text-xs font-extrabold tracking-wide text-neutral-600">COC E SAFETY BELLUNO</div>
+                                <div className="text-xs font-extrabold tracking-wide text-neutral-600">
+                                    COC E SAFETY BELLUNO
+                                </div>
                                 <Tag tone="sky">OPERATIVO</Tag>
                             </div>
 
-                            <h1 className="mt-1 text-2xl font-extrabold text-neutral-900">COC + Safety</h1>
+                            <h1 className="mt-1 text-2xl font-extrabold text-neutral-900">
+                                COC + Safety
+                            </h1>
                             <div className={cx("mt-2 text-xs", UI.dim2)}>Giorno operativo</div>
                         </div>
 
@@ -817,14 +892,21 @@ export default function CocSafety() {
                                 <Building2 size={18} className="text-amber-950" />
                             </div>
                             <div className="min-w-0">
-                                <div className="text-lg font-extrabold text-neutral-900">COC — Stato / Ordinanza / Note / Recapiti</div>
-                                <div className={cx("text-xs mt-1", UI.dim2)}>apri/chiudi • ordinanza • note db • recapiti db</div>
+                                <div className="text-lg font-extrabold text-neutral-900">
+                                    COC — Stato / Ordinanza / Note / Recapiti
+                                </div>
+                                <div className={cx("text-xs mt-1", UI.dim2)}>
+                                    apri/chiudi • ordinanza • note db • recapiti db
+                                </div>
                             </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                             <div className="relative">
-                                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                                <Search
+                                    size={16}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
+                                />
                                 <Input
                                     value={cocSearch}
                                     onChange={(e) => setCocSearch(e.target.value)}
@@ -847,14 +929,24 @@ export default function CocSafety() {
                                 <option value="chiuso">Solo chiusi</option>
                             </select>
 
-                            <MiniBtn tone="coc" title="Aggiungi Comune (DB)" onClick={() => setCocAddModalOpen(true)}>
+                            <MiniBtn
+                                tone="coc"
+                                title="Aggiungi Comune (DB)"
+                                onClick={() => setCocAddModalOpen(true)}
+                            >
                                 <Plus size={16} /> Comune
                             </MiniBtn>
                         </div>
                     </div>
 
                     <div className="mt-4">
-                        <Pager page={cocPaged.page} pages={cocPaged.pages} total={cocPaged.total} perPage={PER_PAGE} onPage={setCocPage} />
+                        <Pager
+                            page={cocPaged.page}
+                            pages={cocPaged.pages}
+                            total={cocPaged.total}
+                            perPage={PER_PAGE}
+                            onPage={setCocPage}
+                        />
                     </div>
 
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -869,37 +961,61 @@ export default function CocSafety() {
                                 : "bg-gradient-to-r from-neutral-400 via-neutral-300 to-neutral-200";
 
                             return (
-                                <div key={c.id} className={cx("rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm")}>
+                                <div
+                                    key={c.id}
+                                    className={cx(
+                                        "rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm"
+                                    )}
+                                >
                                     <div className={cx("h-1.5", topBar)} />
                                     <div className="p-5 bg-white/40">
                                         <div className="min-w-0">
-                                            <div className="font-extrabold text-neutral-900 truncate">{c.commune}</div>
+                                            <div className="font-extrabold text-neutral-900 truncate">
+                                                {c.commune}
+                                            </div>
 
                                             <div className="mt-2 flex flex-wrap gap-2">
-                                                <Chip tone={isOpen ? "good" : "neutral"}>{isOpen ? "COC aperto" : "COC chiuso"}</Chip>
-                                                <Chip tone={ordinance ? "warn" : "neutral"}>{ordinance ? "Ordinanza: sì" : "Ordinanza: no"}</Chip>
+                                                <Chip tone={isOpen ? "good" : "neutral"}>
+                                                    {isOpen ? "COC aperto" : "COC chiuso"}
+                                                </Chip>
+                                                <Chip tone={ordinance ? "warn" : "neutral"}>
+                                                    {ordinance ? "Ordinanza: sì" : "Ordinanza: no"}
+                                                </Chip>
                                                 {hasPdf ? <Chip tone="info">PDF</Chip> : null}
                                             </div>
 
                                             <div className={cx("mt-3 text-xs", UI.dim2)}>
-                                                {c.overlay?.openMode ? `modo: ${c.overlay.openMode}` : ""}
-                                                {c.overlay?.openFrom && c.overlay?.openTo ? ` • ${c.overlay.openFrom}–${c.overlay.openTo}` : ""}
-                                                {c.overlay?.room_phone ? ` • sala: ${c.overlay.room_phone}` : ""}
+                                                {c.overlay?.openMode
+                                                    ? `modo: ${c.overlay.openMode}`
+                                                    : ""}
+                                                {c.overlay?.openFrom && c.overlay?.openTo
+                                                    ? ` • ${c.overlay.openFrom}–${c.overlay.openTo}`
+                                                    : ""}
+                                                {c.overlay?.room_phone
+                                                    ? ` • sala: ${c.overlay.room_phone}`
+                                                    : ""}
                                             </div>
 
                                             {contactsDb.length ? (
                                                 <div className="mt-3 space-y-1">
                                                     {contactsDb.slice(0, 2).map((r) => (
-                                                        <div key={r.id} className="text-[11px] text-neutral-700 font-semibold truncate">
+                                                        <div
+                                                            key={r.id}
+                                                            className="text-[11px] text-neutral-700 font-semibold truncate"
+                                                        >
                                                             {r.contact_name}: {r.phone}
                                                         </div>
                                                     ))}
                                                     {contactsDb.length > 2 ? (
-                                                        <div className="text-[10px] text-neutral-500">+{contactsDb.length - 2} altri</div>
+                                                        <div className="text-[10px] text-neutral-500">
+                                                            +{contactsDb.length - 2} altri
+                                                        </div>
                                                     ) : null}
                                                 </div>
                                             ) : (
-                                                <div className="mt-3 text-[11px] text-neutral-500">Nessun recapito DB</div>
+                                                <div className="mt-3 text-[11px] text-neutral-500">
+                                                    Nessun recapito DB
+                                                </div>
                                             )}
                                         </div>
 
@@ -919,11 +1035,21 @@ export default function CocSafety() {
                                                     })
                                                 }
                                             >
-                                                {isOpen ? <DoorClosed size={16} /> : <DoorOpen size={16} />}
+                                                {isOpen ? (
+                                                    <DoorClosed size={16} />
+                                                ) : (
+                                                    <DoorOpen size={16} />
+                                                )}
                                                 {isOpen ? "Chiudi" : "Apri"}
                                             </MiniBtn>
 
-                                            <MiniBtn tone="coc" title="Ordinanza (upload/scarica)" onClick={() => setOrdModal({ open: true, commune_name: c.commune })}>
+                                            <MiniBtn
+                                                tone="coc"
+                                                title="Ordinanza (upload/scarica)"
+                                                onClick={() =>
+                                                    setOrdModal({ open: true, commune_name: c.commune })
+                                                }
+                                            >
                                                 <FileCheck2 size={16} /> Ordin.
                                             </MiniBtn>
 
@@ -934,7 +1060,9 @@ export default function CocSafety() {
                                                     openDetails({
                                                         title: `Recapiti — ${c.commune}`,
                                                         contentLabel: "Recapiti",
-                                                        contentText: c.contacts ? String(c.contacts) : "Nessun recapito.",
+                                                        contentText: c.contacts
+                                                            ? String(c.contacts)
+                                                            : "Nessun recapito.",
                                                         kind: "contacts",
                                                     })
                                                 }
@@ -946,7 +1074,11 @@ export default function CocSafety() {
                                                 tone="coc"
                                                 title="Note DB"
                                                 onClick={() => {
-                                                    setNoteModal({ open: true, commune_name: c.commune, title: `Note — ${c.commune}` });
+                                                    setNoteModal({
+                                                        open: true,
+                                                        commune_name: c.commune,
+                                                        title: `Note — ${c.commune}`,
+                                                    });
                                                     setNewNoteBody("");
                                                 }}
                                             >
@@ -961,6 +1093,189 @@ export default function CocSafety() {
                 </div>
             </div>
 
+            {/* LOGISTICA DAILY */}
+            <div className={cx(UI.card, UI.softRing)}>
+                <div className={UI.accent} />
+                <div className="p-5 bg-white/40">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-11 w-11 rounded-2xl ring-1 ring-white/45 bg-white/55 grid place-items-center shadow-sm">
+                                <Users size={18} className="text-indigo-950" />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-lg font-extrabold text-neutral-900">
+                                    Logistica operativa
+                                </div>
+                                <div className={cx("text-xs mt-1", UI.dim2)}>
+                                    fuori • in sala • reperibili • auto • orari
+                                </div>
+                            </div>
+                        </div>
+
+                        <MiniBtn
+                            tone="ops"
+                            title="Modifica logistica del giorno"
+                            onClick={() =>
+                                setLogisticsModal({
+                                    open: true,
+                                    day,
+                                    weekday_it: logisticsRow?.weekday_it || "",
+                                    month_label: logisticsRow?.month_label || "",
+                                    logistics_officer: logisticsRow?.logistics_officer || "",
+                                    turns_ssv: logisticsRow?.turns_ssv || "",
+                                    sor_marghera: logisticsRow?.sor_marghera || "",
+                                    borca_morning: logisticsRow?.borca_morning || "",
+                                    borca_evening: logisticsRow?.borca_evening || "",
+                                    substitute_reinforcement:
+                                        logisticsRow?.substitute_reinforcement || "",
+                                    referent: logisticsRow?.referent || "",
+                                    borca_vehicle: logisticsRow?.borca_vehicle || "",
+                                    reperibili: logisticsRow?.reperibili || "",
+                                    room_sor_marghera: logisticsRow?.room_sor_marghera || "",
+                                    room_borca: logisticsRow?.room_borca || "",
+                                    room_extra: logisticsRow?.room_extra || "",
+                                    race_time: logisticsRow?.race_time || "",
+                                    safety_room_hours:
+                                        logisticsRow?.safety_room_hours || "",
+                                    notes: logisticsRow?.notes || "",
+                                })
+                            }
+                        >
+                            <Pencil size={16} /> Modifica giorno
+                        </MiniBtn>
+                    </div>
+
+                    {logisticsQ.isLoading ? (
+                        <div className="mt-3 text-sm text-neutral-500">Carico logistica…</div>
+                    ) : null}
+                    {logisticsQ.error ? (
+                        <div className="mt-3 text-sm text-rose-700">{logisticsQ.error.message}</div>
+                    ) : null}
+
+                    {!logisticsRow ? (
+                        <div className="mt-4 text-sm text-neutral-500">
+                            Nessun dato logistica per questo giorno.
+                        </div>
+                    ) : (
+                        <>
+                            <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                {/* FUORI */}
+                                <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
+                                    <div className="h-1.5 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-500" />
+                                    <div className="p-5 bg-white/40">
+                                        <div className="font-extrabold text-neutral-900">Fuori</div>
+
+                                        <div className="mt-4 space-y-3">
+                                            <Field label="Borca 8:00–15:30">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.borca_morning || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Borca 15:30–22:00">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.borca_evening || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Sostituto / Rinforzo">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.substitute_reinforcement || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Referente">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.referent || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Auto per Borca di Cadore">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.borca_vehicle || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Reperibili">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.reperibili || "—"}
+                                                </div>
+                                            </Field>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* IN SALA */}
+                                <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
+                                    <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
+                                    <div className="p-5 bg-white/40">
+                                        <div className="font-extrabold text-neutral-900">In sala</div>
+
+                                        <div className="mt-4 space-y-3">
+                                            <Field label="Funzionario provinciale / logistica">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.logistics_officer || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="TURNI SSV">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.turns_ssv || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="SOR Marghera">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.sor_marghera || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Sala SOR Marghera">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.room_sor_marghera || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Sala Borca di Cadore">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.room_borca || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Sala extra">
+                                                <div className="text-sm whitespace-pre-wrap">
+                                                    {logisticsRow.room_extra || "—"}
+                                                </div>
+                                            </Field>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                                <Field label="Orario gare Cortina">
+                                    <div className="text-sm whitespace-pre-wrap">
+                                        {logisticsRow.race_time || "—"}
+                                    </div>
+                                </Field>
+
+                                <Field label="Sala Safety Belluno">
+                                    <div className="text-sm whitespace-pre-wrap">
+                                        {logisticsRow.safety_room_hours || "—"}
+                                    </div>
+                                </Field>
+
+                                <Field label="Note">
+                                    <div className="text-sm whitespace-pre-wrap">
+                                        {logisticsRow.notes || "—"}
+                                    </div>
+                                </Field>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+
             {/* SAFETY */}
             <div className={cx(UI.card, UI.softRing)}>
                 <div className={UI.accent} />
@@ -971,16 +1286,24 @@ export default function CocSafety() {
                                 <Users size={18} className="text-cyan-950" />
                             </div>
                             <div className="min-w-0">
-                                <div className="text-lg font-extrabold text-neutral-900">Sala Safety Belluno</div>
+                                <div className="text-lg font-extrabold text-neutral-900">
+                                    Sala Safety Belluno
+                                </div>
                                 <div className={cx("text-xs mt-1", UI.dim2)}>
-                                    Numero esterno: <span className="font-extrabold text-neutral-900">{SAFETY_BELLUNO_EXTERNAL_NUMBER}</span>
+                                    Numero esterno:{" "}
+                                    <span className="font-extrabold text-neutral-900">
+                                        {SAFETY_BELLUNO_EXTERNAL_NUMBER}
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                             <div className="relative">
-                                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                                <Search
+                                    size={16}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
+                                />
                                 <Input
                                     value={safetySearch}
                                     onChange={(e) => setSafetySearch(e.target.value)}
@@ -1011,30 +1334,55 @@ export default function CocSafety() {
                         </div>
                     </div>
 
-                    {safetyQ.isLoading ? <div className="mt-3 text-sm text-neutral-500">Carico contatti…</div> : null}
-                    {safetyQ.error ? <div className="mt-3 text-sm text-rose-700">{safetyQ.error.message}</div> : null}
+                    {safetyQ.isLoading ? (
+                        <div className="mt-3 text-sm text-neutral-500">Carico contatti…</div>
+                    ) : null}
+                    {safetyQ.error ? (
+                        <div className="mt-3 text-sm text-rose-700">{safetyQ.error.message}</div>
+                    ) : null}
 
                     <div className="mt-4">
-                        <Pager page={safetyPaged.page} pages={safetyPaged.pages} total={safetyPaged.total} perPage={PER_PAGE} onPage={setSafetyPage} />
+                        <Pager
+                            page={safetyPaged.page}
+                            pages={safetyPaged.pages}
+                            total={safetyPaged.total}
+                            perPage={PER_PAGE}
+                            onPage={setSafetyPage}
+                        />
                     </div>
 
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         {safetyPaged.slice.map((c) => {
                             const isDb = c._source === "db";
                             return (
-                                <div key={`${c._source}-${c.id ?? fp(c)}`} className={cx("rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm")}>
+                                <div
+                                    key={`${c._source}-${c.id ?? fp(c)}`}
+                                    className={cx(
+                                        "rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm"
+                                    )}
+                                >
                                     <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-500" />
                                     <div className="p-5 bg-white/40">
                                         <div className="min-w-0">
                                             <div className="font-extrabold text-neutral-900 truncate">
-                                                {c.operator || "—"} {!isDb ? <span className="text-[10px] text-neutral-500">• static</span> : null}
+                                                {c.operator || "—"}{" "}
+                                                {!isDb ? (
+                                                    <span className="text-[10px] text-neutral-500">
+                                                        • static
+                                                    </span>
+                                                ) : null}
                                             </div>
 
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 <Chip tone="info">interno: {c.interno || "—"}</Chip>
-                                                <Chip tone="neutral">esterno: {c.external_dial || "—"}</Chip>
                                                 <Chip tone="neutral">
-                                                    gruppo: {c.responder_group || "—"} {c.responder_digit ? `(${c.responder_digit})` : ""}
+                                                    esterno: {c.external_dial || "—"}
+                                                </Chip>
+                                                <Chip tone="neutral">
+                                                    gruppo: {c.responder_group || "—"}{" "}
+                                                    {c.responder_digit
+                                                        ? `(${c.responder_digit})`
+                                                        : ""}
                                                 </Chip>
                                             </div>
 
@@ -1050,7 +1398,11 @@ export default function CocSafety() {
                                                 onClick={async () => {
                                                     try {
                                                         const id = await ensureDbContactId(c);
-                                                        setSafetyNotesModal({ open: true, contactId: id, title: `Note — ${c.operator || "—"}` });
+                                                        setSafetyNotesModal({
+                                                            open: true,
+                                                            contactId: id,
+                                                            title: `Note — ${c.operator || "—"}`,
+                                                        });
                                                         setNewSafetyNote("");
                                                     } catch (e) {
                                                         toastErr(e, "Errore apertura note");
@@ -1112,7 +1464,9 @@ export default function CocSafety() {
                                                 onClick={async () => {
                                                     try {
                                                         const id = await ensureDbContactId(c);
-                                                        const ok = await confirmDanger("Eliminare questo contatto e tutte le note?");
+                                                        const ok = await confirmDanger(
+                                                            "Eliminare questo contatto e tutte le note?"
+                                                        );
                                                         if (!ok) return;
                                                         deleteSafetyContact.mutate(id);
                                                     } catch (e) {
@@ -1135,12 +1489,36 @@ export default function CocSafety() {
             <Modal
                 open={detailsModal.open}
                 title={detailsModal.title}
-                onClose={() => setDetailsModal({ open: false, title: "", contentLabel: "", contentText: "", kind: "text" })}
+                onClose={() =>
+                    setDetailsModal({
+                        open: false,
+                        title: "",
+                        contentLabel: "",
+                        contentText: "",
+                        kind: "text",
+                    })
+                }
             >
                 <div className="space-y-3">
-                    <DetailsBody label={detailsModal.contentLabel} text={detailsModal.contentText} kind={detailsModal.kind} />
+                    <DetailsBody
+                        label={detailsModal.contentLabel}
+                        text={detailsModal.contentText}
+                        kind={detailsModal.kind}
+                    />
                     <div className="flex justify-end">
-                        <MiniBtn tone="neutral" title="Chiudi" onClick={() => setDetailsModal({ open: false, title: "", contentLabel: "", contentText: "", kind: "text" })}>
+                        <MiniBtn
+                            tone="neutral"
+                            title="Chiudi"
+                            onClick={() =>
+                                setDetailsModal({
+                                    open: false,
+                                    title: "",
+                                    contentLabel: "",
+                                    contentText: "",
+                                    kind: "text",
+                                })
+                            }
+                        >
                             <X size={16} /> Chiudi
                         </MiniBtn>
                     </div>
@@ -1148,7 +1526,11 @@ export default function CocSafety() {
             </Modal>
 
             {/* MODALE ADD COC */}
-            <Modal open={cocAddModalOpen} title="Aggiungi Comune (COC - DB)" onClose={() => setCocAddModalOpen(false)}>
+            <Modal
+                open={cocAddModalOpen}
+                title="Aggiungi Comune (COC - DB)"
+                onClose={() => setCocAddModalOpen(false)}
+            >
                 <form
                     className="space-y-3"
                     onSubmit={(e) => {
@@ -1157,14 +1539,23 @@ export default function CocSafety() {
                         if (!name) return;
 
                         const contacts = (cocAddForm.contacts || [])
-                            .map((c) => ({ contact_name: c.contact_name.trim(), phone: c.phone.trim() }))
+                            .map((c) => ({
+                                contact_name: c.contact_name.trim(),
+                                phone: c.phone.trim(),
+                            }))
                             .filter((c) => c.contact_name && c.phone);
 
                         upsertCocCommune.mutate({ name, contacts });
 
                         const open_mode = cocAddForm.open_mode === "H24" ? "H24" : "DAY";
-                        const open_from = cocAddForm.is_open && open_mode === "DAY" ? `${day}T${cocAddForm.open_from}` : null;
-                        const open_to = cocAddForm.is_open && open_mode === "DAY" ? `${day}T${cocAddForm.open_to}` : null;
+                        const open_from =
+                            cocAddForm.is_open && open_mode === "DAY"
+                                ? `${day}T${cocAddForm.open_from}`
+                                : null;
+                        const open_to =
+                            cocAddForm.is_open && open_mode === "DAY"
+                                ? `${day}T${cocAddForm.open_to}`
+                                : null;
 
                         upsertCocStatus.mutate({
                             day,
@@ -1180,7 +1571,9 @@ export default function CocSafety() {
                     <Field label="Nome Comune">
                         <input
                             value={cocAddForm.name}
-                            onChange={(e) => setCocAddForm((s) => ({ ...s, name: e.target.value }))}
+                            onChange={(e) =>
+                                setCocAddForm((s) => ({ ...s, name: e.target.value }))
+                            }
                             placeholder="Es: Valle di Cadore"
                             className={cx(UI.input, "w-full")}
                             required
@@ -1192,18 +1585,32 @@ export default function CocSafety() {
                             <input
                                 type="checkbox"
                                 checked={cocAddForm.is_open}
-                                onChange={(e) => setCocAddForm((s) => ({ ...s, is_open: e.target.checked }))}
+                                onChange={(e) =>
+                                    setCocAddForm((s) => ({
+                                        ...s,
+                                        is_open: e.target.checked,
+                                    }))
+                                }
                             />
                             COC aperto
                         </label>
 
                         <div className="rounded-3xl bg-white/55 ring-1 ring-white/45 px-4 py-3">
-                            <div className="text-[11px] uppercase tracking-wide text-neutral-500 font-extrabold">Modalità</div>
+                            <div className="text-[11px] uppercase tracking-wide text-neutral-500 font-extrabold">
+                                Modalità
+                            </div>
                             <div className="mt-2">
                                 <select
                                     value={cocAddForm.open_mode}
-                                    onChange={(e) => setCocAddForm((s) => ({ ...s, open_mode: e.target.value }))}
-                                    className={cx("rounded-2xl px-4 py-2 text-sm outline-none bg-white/75 ring-1 ring-white/45 w-full")}
+                                    onChange={(e) =>
+                                        setCocAddForm((s) => ({
+                                            ...s,
+                                            open_mode: e.target.value,
+                                        }))
+                                    }
+                                    className={cx(
+                                        "rounded-2xl px-4 py-2 text-sm outline-none bg-white/75 ring-1 ring-white/45 w-full"
+                                    )}
                                     disabled={!cocAddForm.is_open}
                                 >
                                     <option value="DAY">DIURNO</option>
@@ -1219,7 +1626,12 @@ export default function CocSafety() {
                                 <input
                                     type="time"
                                     value={cocAddForm.open_from}
-                                    onChange={(e) => setCocAddForm((s) => ({ ...s, open_from: e.target.value }))}
+                                    onChange={(e) =>
+                                        setCocAddForm((s) => ({
+                                            ...s,
+                                            open_from: e.target.value,
+                                        }))
+                                    }
                                     className={cx(UI.input, "w-full")}
                                 />
                             </Field>
@@ -1227,7 +1639,12 @@ export default function CocSafety() {
                                 <input
                                     type="time"
                                     value={cocAddForm.open_to}
-                                    onChange={(e) => setCocAddForm((s) => ({ ...s, open_to: e.target.value }))}
+                                    onChange={(e) =>
+                                        setCocAddForm((s) => ({
+                                            ...s,
+                                            open_to: e.target.value,
+                                        }))
+                                    }
                                     className={cx(UI.input, "w-full")}
                                 />
                             </Field>
@@ -1237,7 +1654,12 @@ export default function CocSafety() {
                     <Field label="Telefono sala (opzionale)">
                         <input
                             value={cocAddForm.room_phone}
-                            onChange={(e) => setCocAddForm((s) => ({ ...s, room_phone: e.target.value }))}
+                            onChange={(e) =>
+                                setCocAddForm((s) => ({
+                                    ...s,
+                                    room_phone: e.target.value,
+                                }))
+                            }
                             placeholder="Es: 0437-xxx"
                             className={cx(UI.input, "w-full")}
                         />
@@ -1253,7 +1675,10 @@ export default function CocSafety() {
                                             const v = e.target.value;
                                             setCocAddForm((s) => {
                                                 const next = [...(s.contacts || [])];
-                                                next[idx] = { ...next[idx], contact_name: v };
+                                                next[idx] = {
+                                                    ...next[idx],
+                                                    contact_name: v,
+                                                };
                                                 return { ...s, contacts: next };
                                             });
                                         }}
@@ -1280,7 +1705,12 @@ export default function CocSafety() {
                                             setCocAddForm((s) => {
                                                 const next = [...(s.contacts || [])];
                                                 next.splice(idx, 1);
-                                                return { ...s, contacts: next.length ? next : [{ contact_name: "", phone: "" }] };
+                                                return {
+                                                    ...s,
+                                                    contacts: next.length
+                                                        ? next
+                                                        : [{ contact_name: "", phone: "" }],
+                                                };
                                             })
                                         }
                                     >
@@ -1292,7 +1722,15 @@ export default function CocSafety() {
                             <MiniBtn
                                 tone="coc"
                                 title="Aggiungi recapito"
-                                onClick={() => setCocAddForm((s) => ({ ...s, contacts: [...(s.contacts || []), { contact_name: "", phone: "" }] }))}
+                                onClick={() =>
+                                    setCocAddForm((s) => ({
+                                        ...s,
+                                        contacts: [
+                                            ...(s.contacts || []),
+                                            { contact_name: "", phone: "" },
+                                        ],
+                                    }))
+                                }
                             >
                                 <Plus size={16} /> Recapito
                             </MiniBtn>
@@ -1300,7 +1738,11 @@ export default function CocSafety() {
                     </Field>
 
                     <div className="flex items-center justify-end gap-2">
-                        <MiniBtn tone="neutral" title="Annulla" onClick={() => setCocAddModalOpen(false)}>
+                        <MiniBtn
+                            tone="neutral"
+                            title="Annulla"
+                            onClick={() => setCocAddModalOpen(false)}
+                        >
                             Annulla
                         </MiniBtn>
                         <button className="rounded-2xl px-4 py-2 text-sm font-extrabold bg-neutral-900 text-white hover:bg-neutral-800">
@@ -1311,7 +1753,11 @@ export default function CocSafety() {
             </Modal>
 
             {/* MODALE NOTE COC */}
-            <Modal open={noteModal.open} title={noteModal.title} onClose={() => setNoteModal({ open: false, title: "", commune_name: "" })}>
+            <Modal
+                open={noteModal.open}
+                title={noteModal.title}
+                onClose={() => setNoteModal({ open: false, title: "", commune_name: "" })}
+            >
                 <div className="space-y-3">
                     {notesQuery.isLoading ? (
                         <div className="text-sm text-neutral-500">Carico note…</div>
@@ -1321,17 +1767,24 @@ export default function CocSafety() {
                         <div className="space-y-2">
                             {(notesQuery.data?.rows || []).length ? (
                                 (notesQuery.data?.rows || []).map((n) => (
-                                    <div key={n.id} className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4">
+                                    <div
+                                        key={n.id}
+                                        className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4"
+                                    >
                                         <div className="text-[11px] font-extrabold text-neutral-700">
                                             {n.created_by_name || "Utente"} • {fmtTs(n.created_at)}
                                         </div>
-                                        <div className="mt-2 text-sm text-neutral-900 whitespace-pre-wrap">{n.body}</div>
+                                        <div className="mt-2 text-sm text-neutral-900 whitespace-pre-wrap">
+                                            {n.body}
+                                        </div>
                                         <div className="mt-3 flex justify-end">
                                             <MiniBtn
                                                 tone="danger"
                                                 title="Elimina nota"
                                                 onClick={async () => {
-                                                    const ok = await confirmDanger("Eliminare questa nota?");
+                                                    const ok = await confirmDanger(
+                                                        "Eliminare questa nota?"
+                                                    );
                                                     if (!ok) return;
                                                     deleteCocNote.mutate(n.id);
                                                 }}
@@ -1356,7 +1809,13 @@ export default function CocSafety() {
                             placeholder="Scrivi nota operativa…"
                         />
                         <div className="mt-3 flex justify-end gap-2">
-                            <MiniBtn tone="neutral" title="Chiudi" onClick={() => setNoteModal({ open: false, title: "", commune_name: "" })}>
+                            <MiniBtn
+                                tone="neutral"
+                                title="Chiudi"
+                                onClick={() =>
+                                    setNoteModal({ open: false, title: "", commune_name: "" })
+                                }
+                            >
                                 <X size={16} /> Chiudi
                             </MiniBtn>
                             <MiniBtn
@@ -1371,7 +1830,8 @@ export default function CocSafety() {
                                     })
                                 }
                             >
-                                <StickyNote size={16} /> {createCocNote.isPending ? "Salvo…" : "Pubblica"}
+                                <StickyNote size={16} />{" "}
+                                {createCocNote.isPending ? "Salvo…" : "Pubblica"}
                             </MiniBtn>
                         </div>
                     </Field>
@@ -1379,7 +1839,11 @@ export default function CocSafety() {
             </Modal>
 
             {/* MODALE ORDINANZA */}
-            <Modal open={ordModal.open} title={`Ordinanza — ${ordModal.commune_name || ""}`} onClose={() => setOrdModal({ open: false, commune_name: "" })}>
+            <Modal
+                open={ordModal.open}
+                title={`Ordinanza — ${ordModal.commune_name || ""}`}
+                onClose={() => setOrdModal({ open: false, commune_name: "" })}
+            >
                 <div className="space-y-3">
                     <Field label="Carica PDF (solo application/pdf)">
                         <input
@@ -1389,7 +1853,11 @@ export default function CocSafety() {
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
-                                uploadCocOrdinance.mutate({ day, commune_name: ordModal.commune_name, file });
+                                uploadCocOrdinance.mutate({
+                                    day,
+                                    commune_name: ordModal.commune_name,
+                                    file,
+                                });
                             }}
                         />
                         <div className="mt-2 text-xs text-neutral-500">Max 20MB.</div>
@@ -1397,25 +1865,326 @@ export default function CocSafety() {
 
                     <Field label="Scarica PDF">
                         <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm text-neutral-700">Se il PDF è presente puoi scaricarlo.</div>
-                            <MiniBtn tone="coc" title="Scarica" onClick={() => doDownloadPdf(ordModal.commune_name)}>
+                            <div className="text-sm text-neutral-700">
+                                Se il PDF è presente puoi scaricarlo.
+                            </div>
+                            <MiniBtn
+                                tone="coc"
+                                title="Scarica"
+                                onClick={() => doDownloadPdf(ordModal.commune_name)}
+                            >
                                 <Download size={16} /> Scarica
                             </MiniBtn>
                         </div>
                     </Field>
 
                     <div className="flex justify-end">
-                        <MiniBtn tone="neutral" title="Chiudi" onClick={() => setOrdModal({ open: false, commune_name: "" })}>
+                        <MiniBtn
+                            tone="neutral"
+                            title="Chiudi"
+                            onClick={() => setOrdModal({ open: false, commune_name: "" })}
+                        >
                             <X size={16} /> Chiudi
                         </MiniBtn>
                     </div>
                 </div>
             </Modal>
 
+            {/* MODALE LOGISTICA */}
+            <Modal
+                open={logisticsModal.open}
+                title={`Logistica giorno — ${logisticsModal.day || ""}`}
+                onClose={() => setLogisticsModal((s) => ({ ...s, open: false }))}
+            >
+                <form
+                    className="space-y-3"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        upsertLogistics.mutate({
+                            day: logisticsModal.day,
+                            weekday_it: logisticsModal.weekday_it || null,
+                            month_label: logisticsModal.month_label || null,
+                            logistics_officer: logisticsModal.logistics_officer || null,
+                            turns_ssv: logisticsModal.turns_ssv || null,
+                            sor_marghera: logisticsModal.sor_marghera || null,
+                            borca_morning: logisticsModal.borca_morning || null,
+                            borca_evening: logisticsModal.borca_evening || null,
+                            substitute_reinforcement:
+                                logisticsModal.substitute_reinforcement || null,
+                            referent: logisticsModal.referent || null,
+                            borca_vehicle: logisticsModal.borca_vehicle || null,
+                            reperibili: logisticsModal.reperibili || null,
+                            room_sor_marghera: logisticsModal.room_sor_marghera || null,
+                            room_borca: logisticsModal.room_borca || null,
+                            room_extra: logisticsModal.room_extra || null,
+                            race_time: logisticsModal.race_time || null,
+                            safety_room_hours: logisticsModal.safety_room_hours || null,
+                            notes: logisticsModal.notes || null,
+                        });
+                    }}
+                >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Field label="Giorno settimana">
+                            <input
+                                value={logisticsModal.weekday_it}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        weekday_it: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+
+                        <Field label="Mese">
+                            <input
+                                value={logisticsModal.month_label}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        month_label: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+                    </div>
+
+                    <Field label="Funzionario provinciale / logistica">
+                        <textarea
+                            rows={2}
+                            value={logisticsModal.logistics_officer}
+                            onChange={(e) =>
+                                setLogisticsModal((s) => ({
+                                    ...s,
+                                    logistics_officer: e.target.value,
+                                }))
+                            }
+                            className={cx(UI.input, "w-full")}
+                        />
+                    </Field>
+
+                    <Field label="TURNI SSV">
+                        <textarea
+                            rows={2}
+                            value={logisticsModal.turns_ssv}
+                            onChange={(e) =>
+                                setLogisticsModal((s) => ({
+                                    ...s,
+                                    turns_ssv: e.target.value,
+                                }))
+                            }
+                            className={cx(UI.input, "w-full")}
+                        />
+                    </Field>
+
+                    <Field label="SOR Marghera">
+                        <textarea
+                            rows={3}
+                            value={logisticsModal.sor_marghera}
+                            onChange={(e) =>
+                                setLogisticsModal((s) => ({
+                                    ...s,
+                                    sor_marghera: e.target.value,
+                                }))
+                            }
+                            className={cx(UI.input, "w-full")}
+                        />
+                    </Field>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Field label="Borca 8:00–15:30">
+                            <textarea
+                                rows={3}
+                                value={logisticsModal.borca_morning}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        borca_morning: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+
+                        <Field label="Borca 15:30–22:00">
+                            <textarea
+                                rows={3}
+                                value={logisticsModal.borca_evening}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        borca_evening: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+                    </div>
+
+                    <Field label="Sostituto / Rinforzo">
+                        <textarea
+                            rows={2}
+                            value={logisticsModal.substitute_reinforcement}
+                            onChange={(e) =>
+                                setLogisticsModal((s) => ({
+                                    ...s,
+                                    substitute_reinforcement: e.target.value,
+                                }))
+                            }
+                            className={cx(UI.input, "w-full")}
+                        />
+                    </Field>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Field label="Referente">
+                            <input
+                                value={logisticsModal.referent}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        referent: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+
+                        <Field label="Auto">
+                            <input
+                                value={logisticsModal.borca_vehicle}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        borca_vehicle: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+                    </div>
+
+                    <Field label="Reperibili">
+                        <textarea
+                            rows={3}
+                            value={logisticsModal.reperibili}
+                            onChange={(e) =>
+                                setLogisticsModal((s) => ({
+                                    ...s,
+                                    reperibili: e.target.value,
+                                }))
+                            }
+                            className={cx(UI.input, "w-full")}
+                        />
+                    </Field>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <Field label="Sala SOR Marghera">
+                            <input
+                                value={logisticsModal.room_sor_marghera}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        room_sor_marghera: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+
+                        <Field label="Sala Borca">
+                            <input
+                                value={logisticsModal.room_borca}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        room_borca: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+
+                        <Field label="Sala extra">
+                            <input
+                                value={logisticsModal.room_extra}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        room_extra: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Field label="Orario gare">
+                            <input
+                                value={logisticsModal.race_time}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        race_time: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+
+                        <Field label="Orario sala safety">
+                            <input
+                                value={logisticsModal.safety_room_hours}
+                                onChange={(e) =>
+                                    setLogisticsModal((s) => ({
+                                        ...s,
+                                        safety_room_hours: e.target.value,
+                                    }))
+                                }
+                                className={cx(UI.input, "w-full")}
+                            />
+                        </Field>
+                    </div>
+
+                    <Field label="Note">
+                        <textarea
+                            rows={4}
+                            value={logisticsModal.notes}
+                            onChange={(e) =>
+                                setLogisticsModal((s) => ({
+                                    ...s,
+                                    notes: e.target.value,
+                                }))
+                            }
+                            className={cx(UI.input, "w-full")}
+                        />
+                    </Field>
+
+                    <div className="flex items-center justify-end gap-2">
+                        <MiniBtn
+                            tone="neutral"
+                            title="Chiudi"
+                            onClick={() => setLogisticsModal((s) => ({ ...s, open: false }))}
+                        >
+                            Chiudi
+                        </MiniBtn>
+                        <button className="rounded-2xl px-4 py-2 text-sm font-extrabold bg-neutral-900 text-white hover:bg-neutral-800">
+                            Salva
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
             {/* MODALE ADD/EDIT SAFETY */}
             <Modal
                 open={safetyAddModal.open}
-                title={safetyAddModal.mode === "edit" ? "Modifica contatto — Safety Belluno" : "Aggiungi contatto — Safety Belluno"}
+                title={
+                    safetyAddModal.mode === "edit"
+                        ? "Modifica contatto — Safety Belluno"
+                        : "Aggiungi contatto — Safety Belluno"
+                }
                 onClose={() => setSafetyAddModal((s) => ({ ...s, open: false }))}
             >
                 <form
@@ -1428,9 +2197,12 @@ export default function CocSafety() {
                             operator: String(fd.get("operator") || "").trim() || null,
                             interno: String(fd.get("interno") || "").trim() || null,
                             external_dial: String(fd.get("external_dial") || "").trim() || null,
-                            responder_group: String(fd.get("responder_group") || "").trim() || null,
-                            responder_digit: String(fd.get("responder_digit") || "").trim() || null,
-                            responder_note: String(fd.get("responder_note") || "").trim() || null,
+                            responder_group:
+                                String(fd.get("responder_group") || "").trim() || null,
+                            responder_digit:
+                                String(fd.get("responder_digit") || "").trim() || null,
+                            responder_note:
+                                String(fd.get("responder_note") || "").trim() || null,
                         };
 
                         if (!payload.operator && !payload.interno) return;
@@ -1444,11 +2216,21 @@ export default function CocSafety() {
                 >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Field label="Operatore">
-                            <input name="operator" defaultValue={safetyAddModal.operator} placeholder="Es: Prefettura" className={cx(UI.input, "w-full")} />
+                            <input
+                                name="operator"
+                                defaultValue={safetyAddModal.operator}
+                                placeholder="Es: Prefettura"
+                                className={cx(UI.input, "w-full")}
+                            />
                         </Field>
 
                         <Field label="Nr. interno">
-                            <input name="interno" defaultValue={safetyAddModal.interno} placeholder="Es: 201" className={cx(UI.input, "w-full")} />
+                            <input
+                                name="interno"
+                                defaultValue={safetyAddModal.interno}
+                                placeholder="Es: 201"
+                                className={cx(UI.input, "w-full")}
+                            />
                         </Field>
                     </div>
 
@@ -1463,11 +2245,21 @@ export default function CocSafety() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Field label="Gruppo risponditore">
-                            <input name="responder_group" defaultValue={safetyAddModal.responder_group} placeholder="Es: Prefettura" className={cx(UI.input, "w-full")} />
+                            <input
+                                name="responder_group"
+                                defaultValue={safetyAddModal.responder_group}
+                                placeholder="Es: Prefettura"
+                                className={cx(UI.input, "w-full")}
+                            />
                         </Field>
 
                         <Field label="Tasto (digit)">
-                            <input name="responder_digit" defaultValue={safetyAddModal.responder_digit} placeholder="Es: 2" className={cx(UI.input, "w-full")} />
+                            <input
+                                name="responder_digit"
+                                defaultValue={safetyAddModal.responder_digit}
+                                placeholder="Es: 2"
+                                className={cx(UI.input, "w-full")}
+                            />
                         </Field>
                     </div>
 
@@ -1482,7 +2274,11 @@ export default function CocSafety() {
                     </Field>
 
                     <div className="flex items-center justify-end gap-2">
-                        <MiniBtn tone="neutral" title="Annulla" onClick={() => setSafetyAddModal((s) => ({ ...s, open: false }))}>
+                        <MiniBtn
+                            tone="neutral"
+                            title="Annulla"
+                            onClick={() => setSafetyAddModal((s) => ({ ...s, open: false }))}
+                        >
                             Annulla
                         </MiniBtn>
                         <button className="rounded-2xl px-4 py-2 text-sm font-extrabold bg-neutral-900 text-white hover:bg-neutral-800">
@@ -1496,7 +2292,9 @@ export default function CocSafety() {
             <Modal
                 open={safetyNotesModal.open}
                 title={safetyNotesModal.title}
-                onClose={() => setSafetyNotesModal({ open: false, contactId: null, title: "" })}
+                onClose={() =>
+                    setSafetyNotesModal({ open: false, contactId: null, title: "" })
+                }
             >
                 <div className="space-y-3">
                     {safetyNotesQ.isLoading ? (
@@ -1507,17 +2305,24 @@ export default function CocSafety() {
                         <div className="space-y-2">
                             {(safetyNotesQ.data?.rows || []).length ? (
                                 (safetyNotesQ.data?.rows || []).map((n) => (
-                                    <div key={n.id} className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4">
+                                    <div
+                                        key={n.id}
+                                        className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4"
+                                    >
                                         <div className="text-[11px] font-extrabold text-neutral-700">
                                             {n.created_by_name || "Utente"} • {fmtTs(n.created_at)}
                                         </div>
-                                        <div className="mt-2 text-sm text-neutral-900 whitespace-pre-wrap">{n.body}</div>
+                                        <div className="mt-2 text-sm text-neutral-900 whitespace-pre-wrap">
+                                            {n.body}
+                                        </div>
                                         <div className="mt-3 flex justify-end">
                                             <MiniBtn
                                                 tone="danger"
                                                 title="Elimina nota"
                                                 onClick={async () => {
-                                                    const ok = await confirmDanger("Eliminare questa nota?");
+                                                    const ok = await confirmDanger(
+                                                        "Eliminare questa nota?"
+                                                    );
                                                     if (!ok) return;
                                                     deleteSafetyNote.mutate(n.id);
                                                 }}
@@ -1542,16 +2347,32 @@ export default function CocSafety() {
                             placeholder="Aggiungi nota…"
                         />
                         <div className="mt-3 flex justify-end gap-2">
-                            <MiniBtn tone="neutral" title="Chiudi" onClick={() => setSafetyNotesModal({ open: false, contactId: null, title: "" })}>
+                            <MiniBtn
+                                tone="neutral"
+                                title="Chiudi"
+                                onClick={() =>
+                                    setSafetyNotesModal({
+                                        open: false,
+                                        contactId: null,
+                                        title: "",
+                                    })
+                                }
+                            >
                                 <X size={16} /> Chiudi
                             </MiniBtn>
                             <MiniBtn
                                 tone="ops"
                                 title="Pubblica"
                                 disabled={!newSafetyNote.trim() || addSafetyNote.isPending}
-                                onClick={() => addSafetyNote.mutate({ contactId: safetyNotesModal.contactId, body: newSafetyNote.trim() })}
+                                onClick={() =>
+                                    addSafetyNote.mutate({
+                                        contactId: safetyNotesModal.contactId,
+                                        body: newSafetyNote.trim(),
+                                    })
+                                }
                             >
-                                <StickyNote size={16} /> {addSafetyNote.isPending ? "Salvo…" : "Pubblica"}
+                                <StickyNote size={16} />{" "}
+                                {addSafetyNote.isPending ? "Salvo…" : "Pubblica"}
                             </MiniBtn>
                         </div>
                     </Field>
