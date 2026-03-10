@@ -14,7 +14,7 @@ import {
 
 const links = [
     { to: "/", label: "Dashboard", Icon: LayoutDashboard, tone: "indigo" },
-    { to: "/coc-safety", label: "Centri Operativi", Icon: Building2, tone: "amber" },
+    { to: "/coc-safety", label: "Operatività", Icon: Building2, tone: "amber" },
     { to: "/inventario", label: "Volontariato", Icon: Boxes, tone: "teal" },
     // { to: "/criticita", label: "Criticità", Icon: AlertTriangle, tone: "rose" },
     { to: "/reperibilita", label: "Contatti", Icon: Phone, tone: "violet" },

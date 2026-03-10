@@ -136,12 +136,22 @@ function TabBtn({ active, children, onClick }) {
   );
 }
 
-/* ====== Febbraio 2026, griglia 7x5 ====== */
-const MONTH = "2026-02";
-const GRID = (() => {
-  const start = new Date(Date.UTC(2026, 0, 26)); // 2026-01-26 (lun)
+const MONTHS = [
+  { key: "2026-02", label: "Febbraio 2026" },
+  { key: "2026-03", label: "Marzo 2026" },
+];
+
+function buildMonthGrid(month) {
+  const [year, mon] = month.split("-").map(Number);
+
+  const firstDay = new Date(Date.UTC(year, mon - 1, 1));
+  const jsDay = firstDay.getUTCDay(); // dom=0 ... sab=6
+  const offset = jsDay === 0 ? 6 : jsDay - 1; // lun=0 ... dom=6
+
+  const start = new Date(Date.UTC(year, mon - 1, 1 - offset));
+
   const out = [];
-  for (let i = 0; i < 35; i++) {
+  for (let i = 0; i < 42; i++) {
     const d = new Date(
       Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + i)
     );
@@ -151,7 +161,8 @@ const GRID = (() => {
     out.push(`${y}-${m}-${day}`);
   }
   return out;
-})();
+}
+
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
 const SHIFT_NIGHT = "20-8";
@@ -169,20 +180,22 @@ export default function Reperibilita() {
   const qc = useQueryClient();
   const [tab, setTab] = useState("pc");
   const [pcKind, setPcKind] = useState("olympics");
+  const [month, setMonth] = useState("2026-02");
   const [q, setQ] = useState("");
 
   // override locale per evitare rimbalzo turno selezionato
   const [uiOverride, setUiOverride] = useState(() => new Map());
   useEffect(() => {
     setUiOverride(new Map());
-  }, [pcKind]);
+  }, [pcKind, month]);
 
   const search = q.trim().toLowerCase();
-  const pcQueryKey = useMemo(() => ["pcMonth", pcKind, MONTH], [pcKind]);
+  const pcQueryKey = useMemo(() => ["pcMonth", pcKind, month], [pcKind, month]);
+  const grid = useMemo(() => buildMonthGrid(month), [month]);
 
   const pcQuery = useQuery({
     queryKey: pcQueryKey,
-    queryFn: () => api.listPcMonth({ kind: pcKind, month: MONTH }),
+    queryFn: () => api.listPcMonth({ kind: pcKind, month }),
   });
 
   // salva slot vuoto con "+"
@@ -353,8 +366,8 @@ export default function Reperibilita() {
       activeShiftByDay.set(String(d).slice(0, 10), sh);
     }
 
-    for (const d of GRID) {
-      if (!d.startsWith("2026-02-")) continue;
+    for (const d of grid) {
+      if (!d.startsWith(`${month}-`)) continue;
       if (activeShiftByDay.has(d)) continue;
 
       const hasNight =
@@ -371,7 +384,7 @@ export default function Reperibilita() {
     }
 
     return { bySlot, activeShiftByDay };
-  }, [pcQuery.data, uiOverride]);
+  }, [pcQuery.data, uiOverride, grid, month]);
 
   function allowDrop(e) {
     e.preventDefault();
@@ -523,36 +536,56 @@ export default function Reperibilita() {
                 <div className="min-w-0">
                   <div className="text-neutral-500 text-xs font-extrabold tracking-wide">PC</div>
                   <h2 className="text-xl font-extrabold text-neutral-900 truncate">
-                    Febbraio 2026
+                    {MONTHS.find((m) => m.key === month)?.label || month}
                   </h2>
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPcKind("olympics")}
-                  className={cx(
-                    "rounded-2xl px-3 py-2 text-sm font-extrabold transition shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
-                    pcKind === "olympics"
-                      ? "ring-violet-500/18 bg-violet-500/14 text-violet-950"
-                      : "ring-white/45 bg-white/45 hover:bg-white/60 text-neutral-800"
-                  )}
-                >
-                  Olimpiadi
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPcKind("paralympics")}
-                  className={cx(
-                    "rounded-2xl px-3 py-2 text-sm font-extrabold transition shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
-                    pcKind === "paralympics"
-                      ? "ring-cyan-500/18 bg-cyan-500/14 text-cyan-950"
-                      : "ring-white/45 bg-white/45 hover:bg-white/60 text-neutral-800"
-                  )}
-                >
-                  Paralimpiadi
-                </button>
+              <div className="flex flex-col gap-2 sm:items-end">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPcKind("olympics")}
+                    className={cx(
+                      "rounded-2xl px-3 py-2 text-sm font-extrabold transition shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
+                      pcKind === "olympics"
+                        ? "ring-violet-500/18 bg-violet-500/14 text-violet-950"
+                        : "ring-white/45 bg-white/45 hover:bg-white/60 text-neutral-800"
+                    )}
+                  >
+                    Olimpiadi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPcKind("paralympics")}
+                    className={cx(
+                      "rounded-2xl px-3 py-2 text-sm font-extrabold transition shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
+                      pcKind === "paralympics"
+                        ? "ring-cyan-500/18 bg-cyan-500/14 text-cyan-950"
+                        : "ring-white/45 bg-white/45 hover:bg-white/60 text-neutral-800"
+                    )}
+                  >
+                    Paralimpiadi
+                  </button>
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  {MONTHS.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setMonth(m.key)}
+                      className={cx(
+                        "rounded-2xl px-3 py-2 text-sm font-extrabold transition shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
+                        month === m.key
+                          ? "ring-indigo-500/18 bg-indigo-500/14 text-indigo-950"
+                          : "ring-white/45 bg-white/45 hover:bg-white/60 text-neutral-800"
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -579,8 +612,8 @@ export default function Reperibilita() {
                     </div>
 
                     <div className="mt-2 grid grid-cols-7 gap-2">
-                      {GRID.map((dayIso) => {
-                        const inFeb = dayIso.startsWith("2026-02-");
+                      {grid.map((dayIso) => {
+                        const inMonth = dayIso.startsWith(`${month}-`);
                         const dayNum = Number(dayIso.slice(8, 10));
                         const activeShift = activeShiftByDay.get(dayIso) || SHIFT_NIGHT;
 
@@ -589,7 +622,7 @@ export default function Reperibilita() {
                             key={dayIso}
                             className={cx(
                               "rounded-3xl ring-1 ring-white/45 overflow-hidden bg-white/40 shadow-sm",
-                              !inFeb && "opacity-35"
+                              !inMonth && "opacity-35"
                             )}
                           >
                             <div className="px-3 py-2 bg-white/45 flex items-center justify-between gap-2">
@@ -610,9 +643,9 @@ export default function Reperibilita() {
                                     <button
                                       key={sh.key}
                                       type="button"
-                                      disabled={!inFeb || setDayUi.isPending}
+                                      disabled={!inMonth || setDayUi.isPending}
                                       onClick={() => {
-                                        if (!inFeb) return;
+                                        if (!inMonth) return;
 
                                         setUiOverride((prev) => {
                                           const next = new Map(prev);
@@ -680,7 +713,7 @@ export default function Reperibilita() {
                                             draggable={Boolean(row)}
                                             onDragStart={(e) => {
                                               if (!row) return;
-                                              onDragStart(e, row); // ✅ PASSA ROW REALE
+                                              onDragStart(e, row);
                                             }}
                                             className={cx(
                                               "mt-1 rounded-xl px-2 py-1",
@@ -699,7 +732,7 @@ export default function Reperibilita() {
                                         </div>
 
                                         <div className="flex items-center gap-1 pt-5">
-                                          {!row && inFeb ? (
+                                          {!row && inMonth ? (
                                             <button
                                               type="button"
                                               onClick={(e) => {
@@ -753,8 +786,6 @@ export default function Reperibilita() {
                         );
                       })}
                     </div>
-
-                
                   </div>
                 </div>
               </div>

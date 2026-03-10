@@ -290,8 +290,7 @@ export default function Layout() {
                     <div className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 h-24 w-80 rounded-full bg-fuchsia-500/8 blur-3xl" />
                 </header>
 
-                {/* BANNER sviluppo + bottone segnalazione */}
-                <DevBanner onReport={() => setReportOpen(true)} />
+
 
                 <Navbar />
 
@@ -313,6 +312,9 @@ export default function Layout() {
 
                     <Outlet />
                 </main>
+
+                {/* BANNER sviluppo + bottone segnalazione */}
+                <DevBanner onReport={() => setReportOpen(true)} />
 
                 <Footer />
             </div>

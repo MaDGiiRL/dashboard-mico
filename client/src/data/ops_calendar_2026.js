@@ -10,8 +10,8 @@ const OPS_DAILY = [
         id: "ops-safety-link",
         title: "Collegamento con sala safety Belluno",
         location: "Belluno",
-        starts_at: "07:30",
-        ends_at: "23:30",
+        starts_at: "07:00",
+        ends_at: "22:00",
     },
     {
         id: "ops-briefing-cfd",
