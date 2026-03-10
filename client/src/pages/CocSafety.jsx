@@ -155,18 +155,18 @@ function isLikelyBullets(text) {
 /* ------------------ UI tokens ------------------ */
 const UI = {
     card: cx(
-        "rounded-3xl overflow-hidden",
-        "bg-white/55 backdrop-blur-md",
-        "shadow-[0_18px_50px_rgba(0,0,0,0.10)]"
+        "rounded-[32px] overflow-hidden",
+        "bg-white/60 backdrop-blur-xl",
+        "shadow-[0_24px_70px_rgba(15,23,42,0.10)]"
     ),
-    softRing: "ring-1 ring-white/45",
+    softRing: "ring-1 ring-white/50",
     accent: "h-1.5 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-rose-500",
     dim: "text-neutral-600",
     dim2: "text-neutral-500",
     input:
         "w-full rounded-2xl px-4 py-3 text-sm outline-none " +
-        "bg-white/75 text-neutral-900 placeholder:text-neutral-400 " +
-        "shadow-sm ring-1 ring-white/45 " +
+        "bg-white/80 text-neutral-900 placeholder:text-neutral-400 " +
+        "shadow-sm ring-1 ring-white/50 " +
         "focus:ring-4 focus:ring-indigo-500/15",
 };
 
@@ -175,7 +175,7 @@ function Input({ className, ...props }) {
 }
 function Tag({ tone = "neutral", children }) {
     const tones = {
-        neutral: "bg-white/55 text-neutral-700 ring-1 ring-white/45",
+        neutral: "bg-white/65 text-neutral-700 ring-1 ring-white/45",
         amber: "bg-amber-500/14 text-amber-950 ring-1 ring-amber-500/18",
         cyan: "bg-cyan-500/14 text-cyan-950 ring-1 ring-cyan-500/18",
         emerald: "bg-emerald-500/12 text-emerald-900 ring-1 ring-emerald-500/15",
@@ -204,10 +204,14 @@ function MiniBtn({
     type = "button",
 }) {
     const tones = {
-        neutral: "bg-white/55 hover:bg-white/70 text-neutral-900 ring-white/45",
-        coc: "bg-amber-500/14 hover:bg-amber-500/18 text-amber-950 ring-amber-500/18",
-        ops: "bg-cyan-500/14 hover:bg-cyan-500/18 text-cyan-950 ring-cyan-500/18",
-        danger: "bg-rose-500/14 hover:bg-rose-500/18 text-rose-950 ring-rose-500/18",
+        neutral:
+            "bg-white/70 hover:bg-white text-neutral-900 ring-white/50 shadow-sm",
+        coc:
+            "bg-amber-500/14 hover:bg-amber-500/20 text-amber-950 ring-amber-500/18 shadow-sm",
+        ops:
+            "bg-cyan-500/14 hover:bg-cyan-500/20 text-cyan-950 ring-cyan-500/18 shadow-sm",
+        danger:
+            "bg-rose-500/14 hover:bg-rose-500/20 text-rose-950 ring-rose-500/18 shadow-sm",
     };
     const t = tones[tone] || tones.neutral;
 
@@ -218,8 +222,8 @@ function MiniBtn({
             onClick={onClick}
             title={title}
             className={cx(
-                "rounded-2xl px-3 py-2 text-sm transition disabled:opacity-50 flex items-center gap-2",
-                "shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
+                "rounded-2xl px-3 py-2 text-sm font-bold transition disabled:opacity-50 flex items-center gap-2",
+                "ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
                 iconOnly ? "px-2" : "",
                 t
             )}
@@ -230,7 +234,7 @@ function MiniBtn({
 }
 function Chip({ children, tone = "neutral" }) {
     const tones = {
-        neutral: "bg-white/55 text-neutral-700 ring-1 ring-white/45",
+        neutral: "bg-white/70 text-neutral-700 ring-1 ring-white/45",
         good: "bg-emerald-500/12 text-emerald-900 ring-1 ring-emerald-500/15",
         warn: "bg-amber-500/14 text-amber-950 ring-1 ring-amber-500/18",
         info: "bg-sky-500/10 text-sky-900 ring-1 ring-sky-500/15",
@@ -248,11 +252,64 @@ function Chip({ children, tone = "neutral" }) {
 }
 function Field({ label, children }) {
     return (
-        <div className="rounded-3xl bg-white/55 ring-1 ring-white/45 p-4">
-            <div className="text-[11px] uppercase tracking-wide text-neutral-500 font-extrabold">
+        <div className="rounded-[26px] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.60))] ring-1 ring-white/55 p-4 shadow-[0_10px_25px_rgba(15,23,42,0.04)]">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-neutral-500 font-extrabold">
                 {label}
             </div>
             <div className="mt-2">{children}</div>
+        </div>
+    );
+}
+function StatTile({ label, value, tone = "neutral" }) {
+    const tones = {
+        neutral: "from-white/80 to-white/55 ring-white/50",
+        sky: "from-sky-500/12 to-cyan-500/8 ring-sky-500/15",
+        amber: "from-amber-500/12 to-orange-500/8 ring-amber-500/15",
+        violet: "from-violet-500/12 to-fuchsia-500/8 ring-violet-500/15",
+        emerald: "from-emerald-500/12 to-teal-500/8 ring-emerald-500/15",
+    };
+    return (
+        <div
+            className={cx(
+                "rounded-[26px] p-4 ring-1 bg-gradient-to-br shadow-sm",
+                tones[tone] || tones.neutral
+            )}
+        >
+            <div className="text-[11px] uppercase tracking-[0.16em] text-neutral-500 font-extrabold">
+                {label}
+            </div>
+            <div className="mt-2 text-sm font-extrabold text-neutral-900 whitespace-pre-wrap">
+                {value || "—"}
+            </div>
+        </div>
+    );
+}
+function PremiumPanel({ title, subtitle, tone = "sky", badge, children }) {
+    const tones = {
+        sky: "from-sky-500 via-cyan-500 to-indigo-500",
+        amber: "from-amber-500 via-orange-500 to-rose-500",
+        violet: "from-violet-500 via-indigo-500 to-fuchsia-500",
+        emerald: "from-emerald-500 via-teal-500 to-cyan-500",
+    };
+
+    return (
+        <div className="h-full rounded-[30px] overflow-hidden bg-white/72 backdrop-blur-xl ring-1 ring-white/50 shadow-[0_24px_60px_rgba(15,23,42,0.10)]">
+            <div className={cx("h-1.5 bg-gradient-to-r", tones[tone] || tones.sky)} />
+            <div className="p-5 md:p-6 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(255,255,255,0.52))] h-full flex flex-col">
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <div className="text-lg font-extrabold text-neutral-900">{title}</div>
+                        {subtitle ? (
+                            <div className="mt-1 text-xs font-bold tracking-wide text-neutral-500">
+                                {subtitle}
+                            </div>
+                        ) : null}
+                    </div>
+                    {badge ? <Chip tone="info">{badge}</Chip> : null}
+                </div>
+
+                <div className="mt-5 flex-1">{children}</div>
+            </div>
         </div>
     );
 }
@@ -332,11 +389,11 @@ function TabBtn({ active, children, onClick }) {
             type="button"
             onClick={onClick}
             className={cx(
-                "rounded-2xl px-3 py-2 text-sm font-extrabold transition",
-                "shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
+                "relative rounded-2xl px-4 py-2.5 text-sm font-extrabold transition-all",
+                "ring-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15",
                 active
-                    ? "bg-indigo-500/14 ring-indigo-500/18 text-indigo-950"
-                    : "bg-white/55 hover:bg-white/70 text-neutral-800 ring-white/45"
+                    ? "bg-neutral-900 text-white ring-neutral-900 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+                    : "bg-white/70 text-neutral-700 ring-white/50 hover:bg-white hover:text-neutral-900"
             )}
         >
             {children}
@@ -397,14 +454,12 @@ export default function CocSafety() {
     const [day, setDay] = useState(todayISO());
     const [logisticsTab, setLogisticsTab] = useState("borca");
 
-    // DASHBOARD COC
     const dash = useQuery({
         queryKey: ["dashboardDay", day],
         queryFn: () => api.dashboardDay(day),
     });
     const data = dash.data;
 
-    // ===== modale dettagli
     const [detailsModal, setDetailsModal] = useState({
         open: false,
         title: "",
@@ -415,13 +470,11 @@ export default function CocSafety() {
     const openDetails = ({ title, contentLabel, contentText, kind }) =>
         setDetailsModal({ open: true, title, contentLabel, contentText, kind });
 
-    // ===== filtri / paginazione COC
     const [cocFilter, setCocFilter] = useState("all");
     const [cocSearch, setCocSearch] = useState("");
-    const PER_PAGE = 16;
+    const PER_PAGE = 4;
     const [cocPage, setCocPage] = useState(1);
 
-    // ===== modale aggiungi comune (DB)
     const [cocAddModalOpen, setCocAddModalOpen] = useState(false);
     const [cocAddForm, setCocAddForm] = useState({
         name: "",
@@ -433,7 +486,6 @@ export default function CocSafety() {
         contacts: [{ contact_name: "", phone: "" }],
     });
 
-    // ===== modale NOTE COC (DB)
     const [noteModal, setNoteModal] = useState({ open: false, commune_name: "", title: "" });
     const [newNoteBody, setNewNoteBody] = useState("");
     const notesQuery = useQuery({
@@ -445,13 +497,10 @@ export default function CocSafety() {
         enabled: Boolean(noteModal.open && noteModal.commune_name),
     });
 
-    // ===== modale ORDINANZA
     const [ordModal, setOrdModal] = useState({ open: false, commune_name: "" });
 
-    // ===== static COC
     const cocAll = useMemo(() => cocContactsAll(), []);
 
-    // ===== dashboard maps COC
     const cocStatusMap = useMemo(() => {
         const m = new Map();
         for (const row of data?.cocStatus || []) {
@@ -483,7 +532,6 @@ export default function CocSafety() {
         return m;
     }, [data?.cocContacts]);
 
-    // ===== merge COC static + overlay DB
     const cocStaticFiltered = useMemo(() => {
         let xs = cocAll;
         const q = cocSearch.trim().toLowerCase();
@@ -536,8 +584,6 @@ export default function CocSafety() {
     }, [cocStaticFiltered, cocStatusMap, cocOrdinanceMap, cocContactsMap, cocFilter]);
 
     const cocPaged = useMemo(() => paginate(cocMerged, cocPage, PER_PAGE), [cocMerged, cocPage]);
-
-    /* ================= MUTATIONS COC ================= */
 
     const upsertCocStatus = useMutation({
         mutationFn: (payload) => api.upsertCocStatus(payload),
@@ -658,8 +704,6 @@ export default function CocSafety() {
         }
     }
 
-    /* ================= LOGISTICA DAILY ================= */
-
     const logisticsQ = useQuery({
         queryKey: ["cocLogistics"],
         queryFn: () => api.listCocLogistics("2026-01-01", "2026-03-31"),
@@ -706,8 +750,6 @@ export default function CocSafety() {
         },
         onError: (e) => toastErr(e, "Errore logistica"),
     });
-
-    /* ================= SAFETY (DB + static fallback) ================= */
 
     const safetyStatic = useMemo(() => safetyBellunoContactsAll(), []);
 
@@ -870,22 +912,21 @@ export default function CocSafety() {
 
     return (
         <div className="space-y-6">
-            {/* header */}
             <div className={cx(UI.card, UI.softRing)}>
-                <div className="p-6 bg-white/45 relative overflow-hidden">
-                    <div className="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
+                <div className="p-6 md:p-7 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,255,255,0.32))] relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:items-end sm:justify-between">
                         <div>
                             <div className="flex items-center gap-2">
-                                <div className="text-xs font-extrabold tracking-wide text-neutral-600">
+                                <div className="text-xs font-extrabold tracking-[0.18em] text-neutral-500">
                                     COC E SAFETY BELLUNO
                                 </div>
                                 <Tag tone="sky">OPERATIVO</Tag>
                             </div>
 
-                            <h1 className="mt-1 text-2xl font-extrabold text-neutral-900">
+                            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-neutral-900">
                                 COC + Safety
                             </h1>
-                            <div className={cx("mt-2 text-xs", UI.dim2)}>Giorno operativo</div>
+                            <div className={cx("mt-2 text-sm", UI.dim2)}>Quadro operativo del giorno</div>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -898,21 +939,17 @@ export default function CocSafety() {
             {dash.isLoading && <div className={cx("text-sm", UI.dim)}>Caricamento…</div>}
             {dash.error && <div className="text-rose-700">{dash.error.message}</div>}
 
-            {/* COC */}
             <div className={cx(UI.card, UI.softRing)}>
                 <div className={UI.accent} />
                 <div className="p-5 bg-white/40">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="h-11 w-11 rounded-2xl ring-1 ring-white/45 bg-white/55 grid place-items-center shadow-sm">
+                            <div className="h-11 w-11 rounded-2xl ring-1 ring-white/45 bg-white/70 grid place-items-center shadow-sm">
                                 <Building2 size={18} className="text-amber-950" />
                             </div>
                             <div className="min-w-0">
                                 <div className="text-lg font-extrabold text-neutral-900">
                                     COC — Stato / Ordinanza / Note / Recapiti
-                                </div>
-                                <div className={cx("text-xs mt-1", UI.dim2)}>
-                                    apri/chiudi • ordinanza • note db • recapiti db
                                 </div>
                             </div>
                         </div>
@@ -936,7 +973,7 @@ export default function CocSafety() {
                                 onChange={(e) => setCocFilter(e.target.value)}
                                 className={cx(
                                     "rounded-2xl px-4 py-3 text-sm outline-none",
-                                    "bg-white/75 text-neutral-900 shadow-sm ring-1 ring-white/45",
+                                    "bg-white/80 text-neutral-900 shadow-sm ring-1 ring-white/50",
                                     "focus:ring-4 focus:ring-indigo-500/15"
                                 )}
                             >
@@ -980,7 +1017,7 @@ export default function CocSafety() {
                                 <div
                                     key={c.id}
                                     className={cx(
-                                        "rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm"
+                                        "rounded-[28px] overflow-hidden bg-white/70 ring-1 ring-white/50 shadow-[0_16px_40px_rgba(15,23,42,0.06)]"
                                     )}
                                 >
                                     <div className={cx("h-1.5", topBar)} />
@@ -1099,38 +1136,66 @@ export default function CocSafety() {
                 </div>
             </div>
 
-            {/* LOGISTICA DAILY */}
-            <div className={cx(UI.card, UI.softRing)}>
+            <div className={cx(UI.card, UI.softRing, "overflow-visible")}>
                 <div className={UI.accent} />
-                <div className="p-5 bg-white/40">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="h-11 w-11 rounded-2xl ring-1 ring-white/45 bg-white/55 grid place-items-center shadow-sm">
-                                <Users size={18} className="text-indigo-950" />
+                <div className="p-5 md:p-6 bg-white/40">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 rounded-2xl ring-1 ring-white/50 bg-white/75 shadow-sm grid place-items-center">
+                                    <Users size={19} className="text-indigo-950" />
+                                </div>
+                                <div>
+                                    <div className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 font-extrabold">
+                                        LOGISTICA OPERATIVA
+                                    </div>
+                                    <h2 className="text-2xl font-extrabold tracking-tight text-neutral-900">
+                                        Borca / Sala
+                                    </h2>
+                                </div>
                             </div>
-                            <div className="min-w-0">
-                                <div className="text-lg font-extrabold text-neutral-900">
-                                    Logistica operativa
-                                </div>
-                                <div className={cx("text-xs mt-1", UI.dim2)}>
-                                    organizzazione del giorno • Borca / Sala
-                                </div>
+
+                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                                <StatTile
+                                    label="Data"
+                                    value={`${logisticsRow?.weekday_it || "—"} • ${String(day).slice(0, 10)}`}
+                                    tone="neutral"
+                                />
+                                <StatTile
+                                    label="Mese"
+                                    value={logisticsRow?.month_label || "—"}
+                                    tone="violet"
+                                />
+                                <StatTile
+                                    label="Orario gare Cortina"
+                                    value={logisticsRow?.race_time || "—"}
+                                    tone="sky"
+                                />
+                                <StatTile
+                                    label="Sala Safety Belluno"
+                                    value={logisticsRow?.safety_room_hours || "—"}
+                                    tone="amber"
+                                />
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                            <TabBtn
-                                active={logisticsTab === "borca"}
-                                onClick={() => setLogisticsTab("borca")}
-                            >
-                                Borca
-                            </TabBtn>
-                            <TabBtn
-                                active={logisticsTab === "sala"}
-                                onClick={() => setLogisticsTab("sala")}
-                            >
-                                Sala
-                            </TabBtn>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <div className="inline-flex rounded-[22px] p-1.5 bg-white/70 ring-1 ring-white/50 shadow-sm">
+                                <div className="flex items-center gap-1.5">
+                                    <TabBtn
+                                        active={logisticsTab === "borca"}
+                                        onClick={() => setLogisticsTab("borca")}
+                                    >
+                                        Borca
+                                    </TabBtn>
+                                    <TabBtn
+                                        active={logisticsTab === "sala"}
+                                        onClick={() => setLogisticsTab("sala")}
+                                    >
+                                        Sala
+                                    </TabBtn>
+                                </div>
+                            </div>
 
                             <MiniBtn
                                 tone="ops"
@@ -1155,8 +1220,7 @@ export default function CocSafety() {
                                         room_borca: logisticsRow?.room_borca || "",
                                         room_extra: logisticsRow?.room_extra || "",
                                         race_time: logisticsRow?.race_time || "",
-                                        safety_room_hours:
-                                            logisticsRow?.safety_room_hours || "",
+                                        safety_room_hours: logisticsRow?.safety_room_hours || "",
                                         notes: logisticsRow?.notes || "",
                                     })
                                 }
@@ -1167,200 +1231,167 @@ export default function CocSafety() {
                     </div>
 
                     {logisticsQ.isLoading ? (
-                        <div className="mt-3 text-sm text-neutral-500">Carico logistica…</div>
+                        <div className="mt-4 text-sm text-neutral-500">Carico logistica…</div>
                     ) : null}
                     {logisticsQ.error ? (
-                        <div className="mt-3 text-sm text-rose-700">{logisticsQ.error.message}</div>
+                        <div className="mt-4 text-sm text-rose-700">{logisticsQ.error.message}</div>
                     ) : null}
 
                     {!logisticsRow ? (
-                        <div className="mt-4 text-sm text-neutral-500">
+                        <div className="mt-5 rounded-3xl bg-white/65 ring-1 ring-white/50 px-5 py-6 text-sm text-neutral-500">
                             Nessun dato logistica per questo giorno.
                         </div>
                     ) : (
                         <>
-                            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <Field label="Data">
-                                    <div className="text-sm font-extrabold text-neutral-900">
-                                        {logisticsRow.weekday_it || "—"} •{" "}
-                                        {String(logisticsRow.day).slice(0, 10)}
-                                    </div>
-                                </Field>
-
-                                <Field label="Mese">
-                                    <div className="text-sm font-extrabold text-neutral-900">
-                                        {logisticsRow.month_label || "—"}
-                                    </div>
-                                </Field>
-
-                                <Field label="Orario gare Cortina">
-                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                        {logisticsRow.race_time || "—"}
-                                    </div>
-                                </Field>
-
-                                <Field label="Sala Safety Belluno">
-                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                        {logisticsRow.safety_room_hours || "—"}
-                                    </div>
-                                </Field>
-                            </div>
-
                             {logisticsTab === "borca" && (
-                                <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
-                                        <div className="h-1.5 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-500" />
-                                        <div className="p-5 bg-white/40">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="font-extrabold text-neutral-900">
-                                                    Turni Borca
+                                <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+                                    <PremiumPanel
+                                        title="Turni Borca"
+                                        subtitle="Presidio operativo esterno"
+                                        tone="sky"
+                                        badge="FUORI"
+                                    >
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <Field label="Turno 8:00–15:30">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.borca_morning || "—"}
                                                 </div>
-                                                <Chip tone="info">Fuori</Chip>
-                                            </div>
+                                            </Field>
 
-                                            <div className="mt-4 space-y-3">
-                                                <Field label="Turno 8:00–15:30">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.borca_morning || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="Turno 15:30–22:00">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.borca_evening || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="Sostituto / Rinforzo">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.substitute_reinforcement || "—"}
-                                                    </div>
-                                                </Field>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
-                                        <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500" />
-                                        <div className="p-5 bg-white/40">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="font-extrabold text-neutral-900">
-                                                    Supporto operativo
+                                            <Field label="Turno 15:30–22:00">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.borca_evening || "—"}
                                                 </div>
-                                                <Chip tone="good">Operativo</Chip>
-                                            </div>
+                                            </Field>
 
-                                            <div className="mt-4 space-y-3">
-                                                <Field label="Referente">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.referent || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="Auto per Borca di Cadore">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.borca_vehicle || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="Reperibili">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.reperibili || "—"}
-                                                    </div>
-                                                </Field>
-                                            </div>
+                                            <Field label="Sostituto / Rinforzo">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.substitute_reinforcement || "—"}
+                                                </div>
+                                            </Field>
                                         </div>
-                                    </div>
+                                    </PremiumPanel>
+
+                                    <PremiumPanel
+                                        title="Supporto Borca"
+                                        subtitle="Asset e riferimenti del giorno"
+                                        tone="emerald"
+                                        badge="OPERATIVO"
+                                    >
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <Field label="Referente">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.referent || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Auto per Borca di Cadore">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.borca_vehicle || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Reperibili">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.reperibili || "—"}
+                                                </div>
+                                            </Field>
+                                        </div>
+                                    </PremiumPanel>
                                 </div>
                             )}
 
                             {logisticsTab === "sala" && (
-                                <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
-                                        <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
-                                        <div className="p-5 bg-white/40">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="font-extrabold text-neutral-900">
-                                                    Coordinamento sala
+                                <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+                                    <PremiumPanel
+                                        title="Coordinamento Sala"
+                                        subtitle="Personale e coordinamento centrale"
+                                        tone="amber"
+                                        badge="SALA"
+                                    >
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <Field label="Funzionario provinciale / logistica">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.logistics_officer || "—"}
                                                 </div>
-                                                <Chip tone="warn">Sala</Chip>
-                                            </div>
+                                            </Field>
 
-                                            <div className="mt-4 space-y-3">
-                                                <Field label="Funzionario provinciale / logistica">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.logistics_officer || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="TURNI SSV">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.turns_ssv || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="SOR Marghera">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.sor_marghera || "—"}
-                                                    </div>
-                                                </Field>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm">
-                                        <div className="h-1.5 bg-gradient-to-r from-violet-500 via-indigo-500 to-fuchsia-500" />
-                                        <div className="p-5 bg-white/40">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="font-extrabold text-neutral-900">
-                                                    Presenze in sala
+                                            <Field label="TURNI SSV">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.turns_ssv || "—"}
                                                 </div>
-                                                <Chip tone="info">Presidi</Chip>
-                                            </div>
+                                            </Field>
 
-                                            <div className="mt-4 space-y-3">
-                                                <Field label="Sala SOR Marghera">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.room_sor_marghera || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="Sala Borca di Cadore">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.room_borca || "—"}
-                                                    </div>
-                                                </Field>
-
-                                                <Field label="Sala extra">
-                                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                                        {logisticsRow.room_extra || "—"}
-                                                    </div>
-                                                </Field>
-                                            </div>
+                                            <Field label="SOR Marghera">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.sor_marghera || "—"}
+                                                </div>
+                                            </Field>
                                         </div>
-                                    </div>
+                                    </PremiumPanel>
+
+                                    <PremiumPanel
+                                        title="Presenze in Sala"
+                                        subtitle="Presidi e posizionamenti attivi"
+                                        tone="violet"
+                                        badge="PRESIDI"
+                                    >
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <Field label="Sala SOR Marghera">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.room_sor_marghera || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Sala Borca di Cadore">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.room_borca || "—"}
+                                                </div>
+                                            </Field>
+
+                                            <Field label="Sala extra">
+                                                <div className="text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-semibold">
+                                                    {logisticsRow.room_extra || "—"}
+                                                </div>
+                                            </Field>
+                                        </div>
+                                    </PremiumPanel>
                                 </div>
                             )}
 
                             <div className="mt-4">
-                                <Field label="Note del giorno">
-                                    <div className="text-sm whitespace-pre-wrap text-neutral-900">
-                                        {logisticsRow.notes || "—"}
+                                <div className="rounded-[30px] overflow-hidden bg-white/72 backdrop-blur-xl ring-1 ring-white/50 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+                                    <div className="h-1.5 bg-gradient-to-r from-neutral-800 via-neutral-600 to-neutral-400" />
+                                    <div className="p-5 md:p-6">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <div className="text-lg font-extrabold text-neutral-900">
+                                                    Note del giorno
+                                                </div>
+                                                <div className="text-xs font-bold tracking-wide text-neutral-500 mt-1">
+                                                    Annotazioni operative e osservazioni
+                                                </div>
+                                            </div>
+                                            <Chip tone="neutral">NOTE</Chip>
+                                        </div>
+
+                                        <div className="mt-4 rounded-3xl bg-white/70 ring-1 ring-white/50 p-4 md:p-5 text-sm whitespace-pre-wrap leading-relaxed text-neutral-900 font-medium min-h-[92px]">
+                                            {logisticsRow.notes || "—"}
+                                        </div>
                                     </div>
-                                </Field>
+                                </div>
                             </div>
                         </>
                     )}
                 </div>
             </div>
 
-            {/* SAFETY */}
             <div className={cx(UI.card, UI.softRing)}>
                 <div className={UI.accent} />
                 <div className="p-5 bg-white/40">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="h-11 w-11 rounded-2xl ring-1 ring-white/45 bg-white/55 grid place-items-center shadow-sm">
+                            <div className="h-11 w-11 rounded-2xl ring-1 ring-white/45 bg-white/70 grid place-items-center shadow-sm">
                                 <Users size={18} className="text-cyan-950" />
                             </div>
                             <div className="min-w-0">
@@ -1436,7 +1467,7 @@ export default function CocSafety() {
                                 <div
                                     key={`${c._source}-${c.id ?? fp(c)}`}
                                     className={cx(
-                                        "rounded-3xl overflow-hidden bg-white/55 ring-1 ring-white/45 shadow-sm"
+                                        "rounded-[28px] overflow-hidden bg-white/70 ring-1 ring-white/50 shadow-[0_16px_40px_rgba(15,23,42,0.06)]"
                                     )}
                                 >
                                     <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-500" />
@@ -1561,7 +1592,6 @@ export default function CocSafety() {
                 </div>
             </div>
 
-            {/* MODALE DETTAGLI */}
             <Modal
                 open={detailsModal.open}
                 title={detailsModal.title}
@@ -1601,7 +1631,6 @@ export default function CocSafety() {
                 </div>
             </Modal>
 
-            {/* MODALE ADD COC */}
             <Modal
                 open={cocAddModalOpen}
                 title="Aggiungi Comune (COC - DB)"
@@ -1828,7 +1857,6 @@ export default function CocSafety() {
                 </form>
             </Modal>
 
-            {/* MODALE NOTE COC */}
             <Modal
                 open={noteModal.open}
                 title={noteModal.title}
@@ -1914,7 +1942,6 @@ export default function CocSafety() {
                 </div>
             </Modal>
 
-            {/* MODALE ORDINANZA */}
             <Modal
                 open={ordModal.open}
                 title={`Ordinanza — ${ordModal.commune_name || ""}`}
@@ -1966,7 +1993,6 @@ export default function CocSafety() {
                 </div>
             </Modal>
 
-            {/* MODALE LOGISTICA */}
             <Modal
                 open={logisticsModal.open}
                 title={`Logistica giorno — ${logisticsModal.day || ""}`}
@@ -2253,7 +2279,6 @@ export default function CocSafety() {
                 </form>
             </Modal>
 
-            {/* MODALE ADD/EDIT SAFETY */}
             <Modal
                 open={safetyAddModal.open}
                 title={
@@ -2364,7 +2389,6 @@ export default function CocSafety() {
                 </form>
             </Modal>
 
-            {/* MODALE NOTE SAFETY */}
             <Modal
                 open={safetyNotesModal.open}
                 title={safetyNotesModal.title}
