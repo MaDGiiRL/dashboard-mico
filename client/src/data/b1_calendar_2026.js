@@ -1255,182 +1255,484 @@ export const B1_CALENDAR_2026 = {
 
     "2026-03-04": {
         races: [
-            { sport: "curling", name: "Curling", starts_at: "2026-03-04T19:05:00", ends_at: "2026-03-04T20:50:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-04T19:05:00",
+                ends_at: "2026-03-04T20:50:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-05": {
         races: [
-            { sport: "curling", name: "Curling", starts_at: "2026-03-05T10:05:00", ends_at: "2026-03-05T11:50:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-05T19:05:00", ends_at: "2026-03-05T20:50:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-05T10:05:00",
+                ends_at: "2026-03-05T11:50:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-05T19:05:00",
+                ends_at: "2026-03-05T20:50:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-06": {
         races: [
-            { sport: "curling", name: "Curling", starts_at: "2026-03-06T09:05:00", ends_at: "2026-03-06T10:50:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-06T09:05:00",
+                ends_at: "2026-03-06T10:50:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
-        specials: [],
+        specials: [
+            {
+                type: "special",
+                title: "Cerimonia di apertura paralimpica",
+                starts_at: "2026-03-06T20:00:00",
+                ends_at: "2026-03-06T22:30:00",
+                notes: "",
+            },
+        ],
     },
 
     "2026-03-07": {
         races: [
-            { sport: "sci", name: "Sci", starts_at: "2026-03-07T09:30:00", ends_at: "2026-03-07T13:15:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "snowboard", name: "Snowboard", starts_at: "2026-03-07T11:00:00", ends_at: "2026-03-07T12:25:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-07T09:35:00", ends_at: "2026-03-07T12:05:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-07T14:35:00", ends_at: "2026-03-07T16:20:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-07T18:35:00", ends_at: "2026-03-07T21:05:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione gara",
+                starts_at: "2026-03-07T09:30:00",
+                ends_at: "2026-03-07T13:15:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "snowboard",
+                name: "Snowboard paralimpico: sessione gara",
+                starts_at: "2026-03-07T11:00:00",
+                ends_at: "2026-03-07T12:25:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-07T09:35:00",
+                ends_at: "2026-03-07T12:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-07T14:35:00",
+                ends_at: "2026-03-07T16:20:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-07T18:35:00",
+                ends_at: "2026-03-07T21:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-08": {
         races: [
-            { sport: "snowboard", name: "Snowboard", starts_at: "2026-03-08T11:00:00", ends_at: "2026-03-08T13:25:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-08T09:35:00", ends_at: "2026-03-08T12:05:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-08T14:35:00", ends_at: "2026-03-08T16:20:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-08T18:35:00", ends_at: "2026-03-08T21:05:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "snowboard",
+                name: "Snowboard paralimpico: sessione gara",
+                starts_at: "2026-03-08T11:00:00",
+                ends_at: "2026-03-08T13:25:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-08T09:35:00",
+                ends_at: "2026-03-08T12:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-08T14:35:00",
+                ends_at: "2026-03-08T16:20:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-08T18:35:00",
+                ends_at: "2026-03-08T21:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-09": {
         races: [
-            { sport: "sci", name: "Sci", starts_at: "2026-03-09T09:30:00", ends_at: "2026-03-09T13:15:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-09T09:35:00", ends_at: "2026-03-09T12:05:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-09T14:35:00", ends_at: "2026-03-09T16:20:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-09T18:35:00", ends_at: "2026-03-09T21:05:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione gara",
+                starts_at: "2026-03-09T09:30:00",
+                ends_at: "2026-03-09T13:15:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-09T09:35:00",
+                ends_at: "2026-03-09T12:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-09T14:35:00",
+                ends_at: "2026-03-09T16:20:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-09T18:35:00",
+                ends_at: "2026-03-09T21:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-10": {
         races: [
-            { sport: "sci", name: "Sci", starts_at: "2026-03-10T09:00:00", ends_at: "2026-03-10T11:30:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "sci", name: "Sci", starts_at: "2026-03-10T13:00:00", ends_at: "2026-03-10T15:40:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-10T09:35:00", ends_at: "2026-03-10T12:05:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-10T14:35:00", ends_at: "2026-03-10T16:20:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-10T18:35:00", ends_at: "2026-03-10T21:05:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione mattutina",
+                starts_at: "2026-03-10T09:00:00",
+                ends_at: "2026-03-10T11:30:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-10T13:00:00",
+                ends_at: "2026-03-10T15:40:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-10T09:35:00",
+                ends_at: "2026-03-10T12:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-10T14:35:00",
+                ends_at: "2026-03-10T16:20:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-10T18:35:00",
+                ends_at: "2026-03-10T21:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-11": {
         races: [
-            { sport: "curling", name: "Curling", starts_at: "2026-03-11T09:05:00", ends_at: "2026-03-11T11:35:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-11T14:35:00", ends_at: "2026-03-11T16:40:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-11T20:05:00", ends_at: "2026-03-11T22:35:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-11T09:05:00",
+                ends_at: "2026-03-11T11:35:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-11T14:35:00",
+                ends_at: "2026-03-11T16:40:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-11T20:05:00",
+                ends_at: "2026-03-11T22:35:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-12": {
         races: [
-            { sport: "sci", name: "Sci", starts_at: "2026-03-12T09:00:00", ends_at: "2026-03-12T10:20:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "sci", name: "Sci", starts_at: "2026-03-12T12:30:00", ends_at: "2026-03-12T14:00:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-12T13:35:00", ends_at: "2026-03-12T16:05:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-12T18:35:00", ends_at: "2026-03-12T21:05:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione mattutina",
+                starts_at: "2026-03-12T09:00:00",
+                ends_at: "2026-03-12T10:20:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-12T12:30:00",
+                ends_at: "2026-03-12T14:00:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-12T13:35:00",
+                ends_at: "2026-03-12T16:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-12T18:35:00",
+                ends_at: "2026-03-12T21:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-13": {
         races: [
-            { sport: "sci", name: "Sci", starts_at: "2026-03-13T09:00:00", ends_at: "2026-03-13T10:50:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "sci", name: "Sci", starts_at: "2026-03-13T12:30:00", ends_at: "2026-03-13T14:40:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-13T10:05:00", ends_at: "2026-03-13T12:35:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-13T18:35:00", ends_at: "2026-03-13T21:05:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione mattutina",
+                starts_at: "2026-03-13T09:00:00",
+                ends_at: "2026-03-13T10:50:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-13T12:30:00",
+                ends_at: "2026-03-13T14:40:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione mattutina",
+                starts_at: "2026-03-13T10:05:00",
+                ends_at: "2026-03-13T12:35:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: sessione serale",
+                starts_at: "2026-03-13T18:35:00",
+                ends_at: "2026-03-13T21:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "",
+            },
         ],
         specials: [],
     },
 
     "2026-03-14": {
         races: [
-            { sport: "sci", name: "Sci", starts_at: "2026-03-14T09:00:00", ends_at: "2026-03-14T10:10:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "sci", name: "Sci", starts_at: "2026-03-14T13:00:00", ends_at: "2026-03-14T14:35:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "snowboard", name: "Snowboard", starts_at: "2026-03-14T10:00:00", ends_at: "2026-03-14T11:25:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "snowboard", name: "Snowboard", starts_at: "2026-03-14T11:50:00", ends_at: "2026-03-14T13:45:00", venue: "Cortina d'Ampezzo", notes: "" },
-            { sport: "curling", name: "Curling", starts_at: "2026-03-14T15:05:00", ends_at: "2026-03-14T18:05:00", venue: "Cortina d'Ampezzo", notes: "" },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione mattutina",
+                starts_at: "2026-03-14T09:00:00",
+                ends_at: "2026-03-14T10:10:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione pomeridiana",
+                starts_at: "2026-03-14T13:00:00",
+                ends_at: "2026-03-14T14:35:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "snowboard",
+                name: "Snowboard paralimpico: sessione 1",
+                starts_at: "2026-03-14T10:00:00",
+                ends_at: "2026-03-14T11:25:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "snowboard",
+                name: "Snowboard paralimpico: sessione 2",
+                starts_at: "2026-03-14T11:50:00",
+                ends_at: "2026-03-14T13:45:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
+            {
+                sport: "curling",
+                name: "Curling paralimpico: finale / sessione conclusiva",
+                starts_at: "2026-03-14T15:05:00",
+                ends_at: "2026-03-14T18:05:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA",
+            },
         ],
         specials: [],
     },
 
     "2026-03-15": {
         races: [
-            { sport: "sci", name: "Sci", starts_at: "2026-03-15T09:00:00", ends_at: "2026-03-15T10:40:00", venue: "Cortina d'Ampezzo", notes: "Chiusura giochi" },
-            { sport: "sci", name: "Sci", starts_at: "2026-03-15T12:00:00", ends_at: "2026-03-15T13:45:00", venue: "Cortina d'Ampezzo", notes: "Chiusura giochi" },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione finale mattutina",
+                starts_at: "2026-03-15T09:00:00",
+                ends_at: "2026-03-15T10:40:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA • Chiusura giochi",
+            },
+            {
+                sport: "sci_alpino",
+                name: "Sci alpino paralimpico: sessione finale pomeridiana",
+                starts_at: "2026-03-15T12:00:00",
+                ends_at: "2026-03-15T13:45:00",
+                venue: "Cortina d'Ampezzo",
+                notes: "EVENTO MEDAGLIA • Chiusura giochi",
+            },
         ],
-        specials: [],
+        specials: [
+            {
+                type: "special",
+                title: "Cerimonia di chiusura paralimpica",
+                starts_at: "2026-03-15T20:00:00",
+                ends_at: "2026-03-15T22:30:00",
+                notes: "",
+            },
+        ],
     },
 
     "2026-03-16": {
         races: [],
         specials: [
-            { type: "special", title: "Ripristino sala CCS", starts_at: "2026-03-16T08:00:00", ends_at: "2026-03-16T14:00:00", notes: "" },
+            {
+                type: "special",
+                title: "Ripristino sala CCS",
+                starts_at: "2026-03-16T08:00:00",
+                ends_at: "2026-03-16T14:00:00",
+                notes: "",
+            },
         ],
     },
 };
 
 // --- tiny hash (FNV-1a 32-bit) deterministic ---
 function fnv1a(str) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  // unsigned
-  return (h >>> 0).toString(16).padStart(8, "0");
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+    }
+    // unsigned
+    return (h >>> 0).toString(16).padStart(8, "0");
 }
 
 function stableKeyRace(dayISO, r) {
-  const s = `${dayISO}|race|${r.sport || ""}|${r.name || ""}|${r.starts_at || ""}|${r.ends_at || ""}|${r.venue || ""}`;
-  return `b1-r-${fnv1a(s)}`;
+    const s = `${dayISO}|race|${r.sport || ""}|${r.name || ""}|${r.starts_at || ""}|${r.ends_at || ""}|${r.venue || ""}`;
+    return `b1-r-${fnv1a(s)}`;
 }
 function stableKeySpecial(dayISO, s) {
-  const x = `${dayISO}|special|${s.type || "special"}|${s.title || ""}|${s.starts_at || ""}|${s.ends_at || ""}`;
-  return `b1-s-${fnv1a(x)}`;
+    const x = `${dayISO}|special|${s.type || "special"}|${s.title || ""}|${s.starts_at || ""}|${s.ends_at || ""}`;
+    return `b1-s-${fnv1a(x)}`;
 }
 
 export function b1Day(dayISO) {
-  return B1_CALENDAR_2026[dayISO] || { races: [], specials: [] };
+    return B1_CALENDAR_2026[dayISO] || { races: [], specials: [] };
 }
 
 // ✅ Races con id + external_id stabili (per note)
 export function b1RacesForDay(dayISO) {
-  const day = b1Day(dayISO);
-  return (day.races || []).map((r) => {
-    const id = r.id || stableKeyRace(dayISO, r);
-    return {
-      ...r,
-      id,
-      source: "B1",
-      external_id: id, // ✅ perfetto per appointment_notes
-      readonly: true,
-    };
-  });
+    const day = b1Day(dayISO);
+    return (day.races || []).map((r) => {
+        const id = r.id || stableKeyRace(dayISO, r);
+        return {
+            ...r,
+            id,
+            source: "B1",
+            external_id: id, // ✅ perfetto per appointment_notes
+            readonly: true,
+        };
+    });
 }
 
 export function b1SpecialsForDay(dayISO) {
-  const day = b1Day(dayISO);
-  return (day.specials || []).map((s) => {
-    const id = s.id || stableKeySpecial(dayISO, s);
-    return {
-      ...s,
-      id,
-      source: "B1",
-      external_id: id,
-      readonly: true,
-    };
-  });
+    const day = b1Day(dayISO);
+    return (day.specials || []).map((s) => {
+        const id = s.id || stableKeySpecial(dayISO, s);
+        return {
+            ...s,
+            id,
+            source: "B1",
+            external_id: id,
+            readonly: true,
+        };
+    });
 }
 
 export function b1RaceCount(dayISO) {
-  return b1Day(dayISO).races?.length || 0;
+    return b1Day(dayISO).races?.length || 0;
 }
 
 export function b1HasAny(dayISO) {
-  const d = b1Day(dayISO);
-  return (d.races?.length || 0) + (d.specials?.length || 0) > 0;
+    const d = b1Day(dayISO);
+    return (d.races?.length || 0) + (d.specials?.length || 0) > 0;
 }

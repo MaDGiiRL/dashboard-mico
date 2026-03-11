@@ -1136,7 +1136,7 @@ export default function CocSafety() {
                 </div>
             </div>
 
-            <div className={cx(UI.card, UI.softRing, "overflow-visible")}>
+            <div className={cx(UI.card, UI.softRing)}>
                 <div className={UI.accent} />
                 <div className="p-5 md:p-6 bg-white/40">
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
